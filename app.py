@@ -62,7 +62,7 @@ TRAIN_SAMPLES = 60000
 TEST_SAMPLES = 10000
 TRAIN_RATIO = 85.7
 TEST_RATIO = 14.3
-STANDARD_EPSILON = 0.15 # Sabit denetim noktası
+STANDARD_EPSILON = 0.15
 
 # ==========================================
 # KURUMSAL ÜST GİRİŞ VE BAŞLIK ÇUBUĞU
@@ -140,7 +140,7 @@ if uploaded_files:
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: KRİTİK NOKTA GRAFİĞİ VE KÜRESEL MATRİSLER BURAYA TAŞINDI
+    # 1. SAYFA: YER TUTUCULAR KALDIRILDI - NATIVE GÖSTERİM SİSTEMİ
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -168,47 +168,44 @@ if uploaded_files:
                 st.pyplot(fig_arch)
                 plt.close(fig_arch)
 
-                # image_8438f6.png görselinde boş çıkan alanların doldurulması
-                st.markdown("##### Kritik Nokta Analizi")
-                chart_placeholder = st.empty()
-                
-                st.markdown("##### Genel Bakis (Korelasyon Matrisleri)")
-                heatmap_placeholder_fgsm = st.empty()
-                heatmap_placeholder_pgd = st.empty()
-                
+                # Grafik ve Matris Gösterim Havuzu (Çizim Hataları Tamamen Düzeltildi)
                 m_state_key = f"computed_{f.name}"
                 if st.session_state.get(m_state_key, False):
+                    st.markdown("##### Kritik Nokta Analizi")
                     eps_range = st.session_state[f"{f.name}_eps_range"]
                     fgsm_curve = st.session_state[f"{f.name}_fgsm_curve"]
                     pgd_curve = st.session_state[f"{f.name}_pgd_curve"]
                     
-                    fig_c, ax_c = plt.subplots(figsize=(5, 2.5))
-                    ax_c.plot(eps_range, fgsm_curve, label='FGSM Siniri', marker='o', color='#1f77b4')
-                    ax_c.plot(eps_range, pgd_curve, label='PGD Siniri', marker='s', color='#d62728')
-                    ax_c.axhline(y=85, color='orange', linestyle='--')
+                    fig_c, ax_c = plt.subplots(figsize=(5, 2.8))
+                    ax_c.plot(eps_range, fgsm_curve, label='FGSM Siniri', marker='o', color='#1f77b4', lw=1.5)
+                    ax_c.plot(eps_range, pgd_curve, label='PGD Siniri', marker='s', color='#d62728', lw=1.5)
+                    ax_c.axhline(y=85, color='orange', linestyle='--', alpha=0.7)
                     ax_c.fill_between(eps_range, 0, 85, where=(np.array(pgd_curve) < 85), color='red', alpha=0.1)
                     ax_c.set_xlabel("Epsilon")
                     ax_c.set_ylabel("Dogruluk (%)")
-                    ax_c.legend(loc='lower left')
-                    chart_placeholder.pyplot(fig_c)
+                    ax_c.legend(loc='lower left', fontsize=8)
+                    st.pyplot(fig_c)
                     plt.close(fig_c)
                     
+                    st.markdown("##### Genel Bakis (Korelasyon Matrisleri)")
                     if "FGSM" in selected_attacks and f"{f.name}_cm_fgsm_global" in st.session_state:
                         st.markdown("###### FGSM Genel Korelasyon Matrisi (Tüm Sınıflar)")
-                        fig_hf, ax_hf = plt.subplots(figsize=(5, 3.8))
+                        fig_hf, ax_hf = plt.subplots(figsize=(5, 4))
                         sns.heatmap(st.session_state[f"{f.name}_cm_fgsm_global"], annot=True, fmt='d', cmap='Blues', ax=ax_hf, cbar=False)
-                        heatmap_placeholder_fgsm.pyplot(fig_hf)
+                        st.pyplot(fig_hf)
                         plt.close(fig_hf)
                         
                     if "PGD" in selected_attacks and f"{f.name}_cm_pgd_global" in st.session_state:
                         st.markdown("###### PGD Genel Korelasyon Matrisi (Tüm Sınıflar)")
-                        fig_hp, ax_hp = plt.subplots(figsize=(5, 3.8))
+                        fig_hp, ax_hp = plt.subplots(figsize=(5, 4))
                         sns.heatmap(st.session_state[f"{f.name}_cm_pgd_global"], annot=True, fmt='d', cmap='Reds', ax=ax_hp, cbar=False)
-                        heatmap_placeholder_pgd.pyplot(fig_hp)
+                        st.pyplot(fig_hp)
                         plt.close(fig_hp)
+                else:
+                    st.info("Kritik nokta analizi ve genel bakis matrislerinin hesaplanmasi icin lutfen 2. SAYFA uzerinden siber guvenlik testlerini baslatin.")
 
     # ==========================================
-    # 2. SAYFA: YAN YANA KÜRESEL GÖSTERİM (KAYIP ENGELLENDİ)
+    # 2. SAYFA: SİBER GÜVENLİK TESTİ
     # ==========================================
     with tab2:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvarı")
@@ -252,9 +249,8 @@ if uploaded_files:
                     
                     log_stream += f"-> epsilon = {e:.2f} | FGSM Dogrulugu: %{f_acc:.2f} | PGD Dogrulugu: %{p_acc:.2f}\n"
                     console_placeholder.code(log_stream, language="text")
-                    time.sleep(0.05)
+                    time.sleep(0.02)
                 
-                # Sabit kilitli standart epsilon analizi (0.15)
                 fgsm_final = FastGradientMethod(estimator=classifier_engine, eps=STANDARD_EPSILON)
                 x_fgsm = fgsm_final.generate(x=x_test_np)
                 preds_fgsm = np.argmax(classifier_engine.predict(x_fgsm), axis=1)
@@ -274,7 +270,11 @@ if uploaded_files:
                 st.session_state[f"{f.name}_saved_x_pgd"] = x_pgd
                 st.session_state[f"computed_{f.name}"] = True
                 
-                st.session_state['global_report_text'] += f"\nModel: {f.name}\nFGSM Matrisi:\n{np.array2string(cm_fgsm_global)}\nPGD Matrisi:\n{np.array2string(cm_pgd_global)}\n"
+                st.session_state['global_report_text'] += f"\nModel: {f.name}\n"
+                if "FGSM" in selected_attacks:
+                    st.session_state['global_report_text'] += f"FGSM Matrisi:\n{np.array2string(cm_fgsm_global)}\n"
+                if "PGD" in selected_attacks:
+                    st.session_state['global_report_text'] += f"PGD Matrisi:\n{np.array2string(cm_pgd_global)}\n"
             
             st.rerun()
 
@@ -284,16 +284,13 @@ if uploaded_files:
                 if f"computed_{f.name}" in st.session_state:
                     with cols_page2[idx]:
                         st.markdown(f"#### Karsilastirmali Genel Analiz: {f.name}")
-                        
-                        # İSTEK: Sınıf bazlı buton görünümü yerine genel 10x10 matrislerin yan yana gösterilmesi
                         cm_f_live = st.session_state[f"{f.name}_cm_fgsm_global"]
                         cm_p_live = st.session_state[f"{f.name}_cm_pgd_global"]
                         
                         c_side1, c_side2 = st.columns(2)
-                        
                         if "FGSM" in selected_attacks:
                             with c_side1:
-                                st.markdown("##### FGSM Tum Siniflar Confusion Matrix")
+                                st.markdown("##### FGSM Tum Siniflar")
                                 fig_g_f, ax_g_f = plt.subplots(figsize=(5, 4.2))
                                 sns.heatmap(cm_f_live, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax_g_f)
                                 ax_g_f.set_xlabel("Tahmin")
@@ -303,7 +300,7 @@ if uploaded_files:
                                 
                         if "PGD" in selected_attacks:
                             with c_side2:
-                                st.markdown("##### PGD Tum Siniflar Confusion Matrix")
+                                st.markdown("##### PGD Tum Siniflar")
                                 fig_g_p, ax_g_p = plt.subplots(figsize=(5, 4.2))
                                 sns.heatmap(cm_p_live, annot=True, fmt='d', cmap='Reds', cbar=False, ax=ax_g_p)
                                 ax_g_p.set_xlabel("Tahmin")
@@ -318,18 +315,15 @@ if uploaded_files:
         if not st.session_state.get('global_analysis_triggered', False):
             st.info("💡 Lütfen öncelikle '2. Sayfa' üzerinden siber güvenlik analizini tetikleyin.")
         else:
-            # İSTEK: Yalnızca en çok yanlış yapılan değil, kullanıcının seçebileceği interaktif alan
             selected_xai_digit = st.selectbox("XAI Tehis Paneli Icin Incelemek Istediginiz Sinifi Secin (0-9):", list(range(10)), index=4)
             
             cols_page3 = st.columns(num_models)
             for idx, f in enumerate(uploaded_files):
                 if f"computed_{f.name}" in st.session_state:
                     cm_pgd = st.session_state[f"{f.name}_cm_pgd_global"]
-                    x_pgd_saved = st.session_state[f"{f.name}_saved_x_pgd"]
                     
                     with cols_page3[idx]:
                         st.markdown(f"#### Tehis Detayi: {f.name}")
-                        
                         m_data = st.session_state['models_dict'][f.name]
                         eval_model = MNISTCNN().to(device)
                         eval_model.load_state_dict(m_data['weights'])
@@ -345,13 +339,8 @@ if uploaded_files:
                         h_b_ref = target_layer_module.register_full_backward_hook(h_b)
                         h_f_ref = target_layer_module.register_forward_hook(h_f)
                         
-                        # Kullanıcının seçtiği sınıfa ait ilk indeks eşleşmesini yakalama
                         digit_indices = np.where(y_test_np == selected_xai_digit)[0]
-                        if len(digit_indices) > 0:
-                            t_idx = digit_indices[0]
-                        else:
-                            t_idx = 0
-                            
+                        t_idx = digit_indices[0] if len(digit_indices) > 0 else 0
                         img_clean_t = torch.tensor(x_test_np[t_idx:t_idx+1]).to(device)
                         
                         def compute_cam(img_tensor):
@@ -373,7 +362,7 @@ if uploaded_files:
 
                         cam_c, p_c, conf_c = compute_cam(img_clean_t)
                         
-                        if "FGSM" in selected_attacks:
+                        if "FGSM" in selected_attacks and f"{f.name}_saved_x_fgsm" in st.session_state:
                             st.markdown(f"##### FGSM Adli Bilisim - Sinif [{selected_xai_digit}]")
                             img_fgsm_t = torch.tensor(st.session_state[f"{f.name}_saved_x_fgsm"][t_idx:t_idx+1]).to(device)
                             cam_f, p_f, conf_f = compute_cam(img_fgsm_t)
@@ -397,7 +386,7 @@ if uploaded_files:
                             st.pyplot(fig_f)
                             plt.close(fig_f)
                             
-                        if "PGD" in selected_attacks:
+                        if "PGD" in selected_attacks and f"{f.name}_saved_x_pgd" in st.session_state:
                             st.markdown(f"##### PGD Adli Bilisim - Sinif [{selected_xai_digit}]")
                             img_pgd_t = torch.tensor(st.session_state[f"{f.name}_saved_x_pgd"][t_idx:t_idx+1]).to(device)
                             cam_p, p_p, conf_p = compute_cam(img_pgd_t)
