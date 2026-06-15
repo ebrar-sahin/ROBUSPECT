@@ -25,7 +25,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# GOMULU MODEL MIMARISI VE VERI SETI PARAMETRELERI
+# GOMULU MODEL MIMARISI VE VERI SETI PARAMETRELERİ
 # ==========================================
 class MNISTCNN(nn.Module):
     def __init__(self):
@@ -140,7 +140,7 @@ if uploaded_files:
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: MODEL RONTGENI VE SABITLENMIS GRAFIKLER
+    # 1. SAYFA: MODEL RONTGENI
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -210,11 +210,11 @@ if uploaded_files:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvari")
         trigger_btn = st.button("SIBER GUVENLIK TESTLERINI ES ZAMANLI BASLAT", use_container_width=True)
         
+        console_placeholder = st.empty()
+        
         if st.session_state.get('global_analysis_triggered', False) and "console_log" in st.session_state:
             st.code(st.session_state["console_log"], language="text")
             
-        console_placeholder = st.empty()
-        
         if trigger_btn:
             st.session_state['global_analysis_triggered'] = True
             st.session_state['global_report_text'] = "ROBUSPECT MODEL GUVENLIK DENETIM RAPORU - 2026\n=============================================================\n"
@@ -313,13 +313,12 @@ if uploaded_files:
                                 plt.close(fig_g_p)
 
     # ==========================================
-    # 3. SAYFA: INTERAKTIF SINIF SECIMLI FARK ISI VE ODAK HARITALARI (XAI)
+    # 3. SAYFA: COOOLWARM -> coolwarm DUZELTMESI VE XAI SUITE
     # ==========================================
     with tab3:
         if not st.session_state.get('global_analysis_triggered', False):
             st.info("[SISTEM] Lutfen oncelikle '2. Sayfa' uzerinden siber guvenlik analizini tetikleyin.")
         else:
-            # Istek: Kullanicinin ozgurce sinif secebilecegi interaktif alan
             selected_xai_digit = st.selectbox("XAI Tehis Paneli Icin Incelemek Istediginiz Rakam Sinifini Secin (0-9):", list(range(10)), index=4)
             
             cols_page3 = st.columns(num_models)
@@ -333,12 +332,12 @@ if uploaded_files:
                     with cols_page3[idx]:
                         st.markdown(f"#### Tehis Merkezi: {f.name}")
                         
-                        # Istek: FGSM ve PGD arasinda bias karsilastirmasi yapan Diferansiyel Isi Haritasi (Makro Seviye)
                         st.markdown("##### Tehdit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
                         cm_bias = cm_pgd - cm_fgsm
                         fig_bias, ax_bias = plt.subplots(figsize=(5, 3.8))
-                        # Karsilastirmali bias yonunu netlestirmek icin Coolwarm paleti kuruldu
-                        sns.heatmap(cm_bias, annot=True, fmt='d', cmap='Coolwarm', center=0, ax=ax_bias, cbar=False)
+                        
+                        # CRITICAL FIX: 'Coolwarm' degeri hataya yol aciyordu, 'coolwarm' olarak revize edildi.
+                        sns.heatmap(cm_bias, annot=True, fmt='d', cmap='coolwarm', center=0, ax=ax_bias, cbar=False)
                         ax_bias.set_xlabel("Tahmin Saptirma Yonu")
                         ax_bias.set_ylabel("Gercek Rakam Sinifi")
                         st.pyplot(fig_bias)
@@ -382,7 +381,6 @@ if uploaded_files:
 
                         cam_c, p_c, conf_c = compute_cam(img_clean_t)
                         
-                        # Uzamsal Odak Analizi Motoru
                         img_fgsm_t = torch.tensor(x_fgsm_saved[t_idx:t_idx+1]).to(device)
                         cam_f, p_f, conf_f = compute_cam(img_fgsm_t)
                         
@@ -391,12 +389,10 @@ if uploaded_files:
                         
                         h_b_ref.remove(); h_f_ref.remove()
                         
-                        # Istek: Model nerelere bakarak 4'u 9 sandi sorusunun uzamsal cevabi (Mikro Seviye)
                         cam_bias_fp = np.abs(cam_f - cam_p)
                         if np.max(cam_bias_fp) > 0: 
                             cam_bias_fp /= np.max(cam_bias_fp)
                         
-                        # Kurumsal 5'li Odak Sapma Haritasi Çizimi
                         st.markdown(f"##### Sinif [{selected_xai_digit}] Icin Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
                         fig_cam, axes = plt.subplots(1, 5, figsize=(13, 3.2))
                         
