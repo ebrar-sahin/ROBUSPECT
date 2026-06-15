@@ -83,7 +83,7 @@ with header_col2:
 st.markdown("---")
 
 # ==========================================
-# SABİT ÜST KONTROL BARI
+# SABİT ÜST KONTROL BARI (DOSYA YÜKLEME VE RAPOR İNDİRME)
 # ==========================================
 top_col1, top_col2 = st.columns([2, 1])
 
@@ -116,8 +116,8 @@ if uploaded_files:
                 p_lr = state_dict.get('learning_rate', 0.0010)
                 weights = state_dict['model_state_dict']
             else:
-                p_epoch = "3 (Ağırlık Matrisinden Saptandı)"
-                p_opt = "Adam / SGD (Anatomik Saptama)"
+                p_epoch = "Bilinmiyor"
+                p_opt = "Adam / SGD"
                 p_lr = 0.0010
                 weights = state_dict
                 
@@ -136,11 +136,11 @@ if uploaded_files:
     with cfg_c2:
         norm_type = st.selectbox("Perturbasyon Normu (L-Norm):", ["L-infinity (L_inf)", "L-2 Norm", "L-1 Norm"])
 
-    tab1, tab2, tab3 = st.tabs(["1. SAYFA: Model Özellikleri & Kararlılık", "2. SAYFA: Siber Dayanıklılık & İnteraktif Analiz", "3. SAYFA: Gelişmiş Kullanıcı Sonuçları (XAI)"])
+    tab1, tab2, tab3 = st.tabs(["1. SAYFA: Model Özellikleri & Kararlılık", "2. SAYFA: Siber Dayanıklılık & Kıyaslama", "3. SAYFA: Gelişmiş Kullanıcı Sonuçları (XAI)"])
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: MODEL RÖNTGENİ
+    # 1. SAYFA: MODEL RÖNTGENİ, ANİMASYONLU GRAFİKLER VE GENEL MATRİSLER
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -176,8 +176,8 @@ if uploaded_files:
                     pgd_curve = st.session_state[f"{f.name}_pgd_curve"]
                     
                     fig_c, ax_c = plt.subplots(figsize=(5, 2.8))
-                    ax_c.plot(eps_range, fgsm_curve, label='FGSM Siniri', marker='o', color='#1f77b4', lw=1.5)
-                    ax_c.plot(eps_range, pgd_curve, label='PGD Siniri', marker='s', color='#d62728', lw=1.5)
+                    ax_c.plot(eps_range, fgsm_curve, label='FGSM', marker='o', color='#1f77b4', lw=1.5)
+                    ax_c.plot(eps_range, pgd_curve, label='PGD', marker='s', color='#d62728', lw=1.5)
                     ax_c.axhline(y=85, color='orange', linestyle='--', alpha=0.7)
                     ax_c.fill_between(eps_range, 0, 85, where=(np.array(pgd_curve) < 85), color='red', alpha=0.1)
                     ax_c.set_xlabel("Epsilon")
@@ -188,16 +188,15 @@ if uploaded_files:
                     
                     st.markdown("##### Genel Bakis (Korelasyon Matrisleri)")
                     if "FGSM" in selected_attacks and f"{f.name}_cm_fgsm_global" in st.session_state:
-                        st.markdown("###### FGSM Genel Korelasyon Matrisi (Tüm Sınıflar)")
+                        st.markdown("###### FGSM Genel Korelasyon Matrisi")
                         fig_hf, ax_hf = plt.subplots(figsize=(5, 4))
                         sns.heatmap(st.session_state[f"{f.name}_cm_fgsm_global"], annot=True, fmt='d', cmap='Blues', ax=ax_hf, cbar=False)
                         st.pyplot(fig_hf)
                         plt.close(fig_hf)
                         
                     if "PGD" in selected_attacks and f"{f.name}_cm_pgd_global" in st.session_state:
-                        st.markdown("###### PGD Genel Korelasyon Matrisi (Tüm Sınıflar)")
+                        st.markdown("###### PGD Genel Korelasyon Matrisi")
                         fig_hp, ax_hp = plt.subplots(figsize=(5, 4))
-                        # TESPİT EDİLEN CRITICAL FIX: Sözdizimi hatası üreten ax=hp_axis := ax_hp yapısı temizlendi.
                         sns.heatmap(st.session_state[f"{f.name}_cm_pgd_global"], annot=True, fmt='d', cmap='Reds', ax=ax_hp, cbar=False)
                         st.pyplot(fig_hp)
                         plt.close(fig_hp)
@@ -205,16 +204,15 @@ if uploaded_files:
                     st.info("Kritik nokta analizi ve genel bakis matrislerinin hesaplanmasi icin lutfen 2. SAYFA uzerinden siber guvenlik testlerini baslatin.")
 
     # ==========================================
-    # 2. SAYFA: SİBER GÜVENLİK TESTİ
+    # 2. SAYFA: SİBER GÜVENLİK TESTİ VE SPEKTRUM GÜNLÜĞÜ
     # ==========================================
     with tab2:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvari")
         trigger_btn = st.button("SİBER GÜVENLİK TESTLERİNİ EŞ ZAMANLI BAŞLAT", use_container_width=True)
         
         console_placeholder = st.empty()
-        
         if st.session_state.get('global_analysis_triggered', False) and "console_log" in st.session_state:
-            st.code(st.session_state["console_log"], language="text")
+            console_placeholder.code(st.session_state["console_log"], language="text")
             
         if trigger_btn:
             st.session_state['global_analysis_triggered'] = True
@@ -295,7 +293,7 @@ if uploaded_files:
                         c_side1, c_side2 = st.columns(2)
                         if "FGSM" in selected_attacks:
                             with c_side1:
-                                st.markdown("##### FGSM Tum Siniflar")
+                                st.markdown("##### FGSM Tüm Siniflar")
                                 fig_g_f, ax_g_f = plt.subplots(figsize=(5, 4.2))
                                 sns.heatmap(cm_f_live, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax_g_f)
                                 ax_g_f.set_xlabel("Tahmin")
@@ -305,7 +303,7 @@ if uploaded_files:
                                 
                         if "PGD" in selected_attacks:
                             with c_side2:
-                                st.markdown("##### PGD Tum Siniflar")
+                                st.markdown("##### PGD Tüm Siniflar")
                                 fig_g_p, ax_g_p = plt.subplots(figsize=(5, 4.2))
                                 sns.heatmap(cm_p_live, annot=True, fmt='d', cmap='Reds', cbar=False, ax=ax_g_p)
                                 ax_g_p.set_xlabel("Tahmin")
@@ -314,7 +312,7 @@ if uploaded_files:
                                 plt.close(fig_g_p)
 
     # ==========================================
-    # 3. SAYFA: SAKINCALARI ENGELLENMİŞ MANTIKSAL SIRALAMA (XAI)
+    # 3. SAYFA: SAKINCALARI ENGELLENMİŞ MANTIKSAL SIRALAMA VE BİAS ISI HARİTASI
     # ==========================================
     with tab3:
         if not st.session_state.get('global_analysis_triggered', False):
@@ -324,10 +322,12 @@ if uploaded_files:
             if f"computed_{ref_f}" in st.session_state:
                 ref_cm = st.session_state[f"{ref_f}_cm_pgd_global"]
                 
+                # Zafiyete göre dinamik sıralama: En kırılgandan en sağlama doğru
                 digit_accs = {c: (np.sum(ref_cm[c, c]) / max(np.sum(ref_cm[c, :]), 1) * 100) for c in range(10)}
                 sorted_options = sorted(list(range(10)), key=lambda c: digit_accs[c])
                 option_labels = {c: f"Sinif {c} (Karsilastirmali Saglamlik Orani: %{digit_accs[c]:.1f})" for c in range(10)}
                 
+                # Seçim kutusu sayfanın en üstünde konumlandırıldı
                 selected_xai_digit = st.selectbox(
                     "XAI Tehis Paneli Icin Incelemek Istediginiz Rakam Sinifini Secin (En Kirilgandan En Saglama Sirali):",
                     options=sorted_options,
@@ -394,11 +394,12 @@ if uploaded_files:
                             
                             h_b_ref.remove(); h_f_ref.remove()
                             
+                            # Mikroskobik Uzamsal Bias Haritasi (FGSM ve PGD arasindaki piksel farki)
                             cam_bias_fp = np.abs(cam_f - cam_p)
                             if np.max(cam_bias_fp) > 0: 
                                 cam_bias_fp /= np.max(cam_bias_fp)
                             
-                            st.markdown(f"##### Sinif [{selected_xai_digit}] Icin Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
+                            st.markdown(f"##### Sinif [{selected_xai_digit}] Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
                             fig_cam, axes = plt.subplots(1, 5, figsize=(13, 3.2))
                             
                             axes[0].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
@@ -429,8 +430,9 @@ if uploaded_files:
                             st.pyplot(fig_cam)
                             plt.close(fig_cam)
                             
+                            # Makro Seviye Diferansiyel Tehdit Yanlilik Haritasi (Sayfa En Altina Tasindi)
                             st.markdown("---")
-                            st.markdown("##### Tehudit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
+                            st.markdown("##### Tehdit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
                             cm_bias = cm_pgd - cm_fgsm
                             fig_bias, ax_bias = plt.subplots(figsize=(5, 3.8))
                             sns.heatmap(cm_bias, annot=True, fmt='d', cmap='coolwarm', center=0, ax=ax_bias, cbar=False)
