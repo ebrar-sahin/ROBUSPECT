@@ -140,7 +140,7 @@ if uploaded_files:
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: MODEL RÖNTGENİ, ANİMASYONLU GRAFİKLER VE GENEL MATRİSLER
+    # 1. SAYFA: MODEL RÖNTGENİ VE ANALİZ GRAFİKLERİ
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -204,7 +204,7 @@ if uploaded_files:
                     st.info("Kritik nokta analizi ve genel bakis matrislerinin hesaplanmasi icin lutfen 2. SAYFA uzerinden siber guvenlik testlerini baslatin.")
 
     # ==========================================
-    # 2. SAYFA: SİBER GÜVENLİK TESTİ VE SPEKTRUM GÜNLÜĞÜ
+    # 2. SAYFA: SİBER GÜVENLİK TESTİ
     # ==========================================
     with tab2:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvari")
@@ -216,7 +216,17 @@ if uploaded_files:
             
         if trigger_btn:
             st.session_state['global_analysis_triggered'] = True
-            st.session_state['global_report_text'] = "ROBUSPECT MODEL GÜVENLİK DENETİM RAPORU - 2026\n=============================================================\n"
+            
+            # ÜST DÜZEY AKADEMİK VE ENDÜSTRİYEL RAPOR BAŞLIĞI OLUŞTURULMASI
+            r_text = "=============================================================\n"
+            r_text += "ROBUSPECT MERKEZI SIBER GUVENLIK VE MLSECOPS DENETIM RAPORU - 2026\n"
+            r_text += "=============================================================\n\n"
+            r_text += "VALIDASYON VERI SETI PARAMETRELERI:\n"
+            r_text += f"- Toplam MNIST Veri Havuzu: {TOTAL_SAMPLES} Imaj\n"
+            r_text += f"- Egitim Kumesi Hacmi: {TRAIN_SAMPLES} (%{TRAIN_RATIO})\n"
+            r_text += f"- Test / Validasyon Kumesi Hacmi: {TEST_SAMPLES} (%{TEST_RATIO})\n"
+            r_text += f"- Referans Siber Denetim Epsilon Seviyesi: {STANDARD_EPSILON}\n"
+            r_text += "-------------------------------------------------------------\n\n"
             
             art_norm = np.inf if norm_type == "L-infinity (L_inf)" else (2 if norm_type == "L-2 Norm" else 1)
             accumulated_log = ""
@@ -272,13 +282,42 @@ if uploaded_files:
                 st.session_state[f"{f.name}_saved_x_pgd"] = x_pgd
                 st.session_state[f"computed_{f.name}"] = True
                 
-                st.session_state['global_report_text'] += f"\nModel: {f.name}\n"
+                # İSTEK: KONSOLİDE RAPOR İÇERİĞİNE BÜTÜN ÖLÇÜLEN DEĞERLERİN DİNAMİK EKLEMESİ
+                layers_decoded = [k.split('.')[0] for k in m_data['weights'].keys() if 'weight' in k]
+                acc_baseline = fgsm_curve[0]
+                acc_fgsm_final = fgsm_curve[3] # Index 3 represents 0.15 epsilon
+                acc_pgd_final = pgd_curve[3]
+                
+                r_text += f"MODEL KINLIGI: {f.name}\n"
+                r_text += f"-----------------------------------------------------\n"
+                r_text += f"1. STRUKTUREL VE EGITIM PARAMETRELERI:\n"
+                r_text += f"   - Egitim Suresi (Epoch): {m_data['epoch']}\n"
+                r_text += f"   - Belirlenen Optimizer: {m_data['optimizer']}\n"
+                r_text += f"   - Ogrenme Orani (LR): {m_data['lr']}\n"
+                r_text += f"   - Katman Anatomisi: {' -> '.join(layers_decoded).upper()}\n\n"
+                
+                r_text += f"2. ROBUSTNESS PERFORMANS DEGERLERI (Epsilon: {STANDARD_EPSILON}):\n"
+                r_text += f"   - Orijinal Veri Temel Dogrulugu: %{acc_baseline:.2f}\n"
+                r_text += f"   - FGSM Saldirisi Sonrasi Dogruluk: %{acc_fgsm_final:.2f} (Performans Kaybi: -%{acc_baseline - acc_fgsm_final:.2f})\n"
+                r_text += f"   - PGD Saldirisi Sonrasi Dogruluk: %{acc_pgd_final:.2f} (Performans Kaybi: -%{acc_baseline - acc_pgd_final:.2f})\n\n"
+                
+                r_text += f"3. GENISLETILMIS SIBER SPEKTRUM ANALIZ VERILERI:\n"
+                for i_eps, eps_pt in enumerate(eps_range):
+                    r_text += f"   - Epsilon = {eps_pt:.2f} -> FGSM: %{fgsm_curve[i_eps]:.2f} | PGD: %{pgd_curve[i_eps]:.2f}\n"
+                r_text += "\n"
+                
+                r_text += f"4. KURESEL KONFUZYON MATRIS DOKUMLERI (10x10 ARRAY):\n"
                 if "FGSM" in selected_attacks:
-                    st.session_state['global_report_text'] += f"FGSM Matrisi:\n{np.array2string(cm_fgsm_global)}\n"
+                    r_text += f"FGSM Matrisi:\n{np.array2string(cm_fgsm_global)}\n"
                 if "PGD" in selected_attacks:
-                    st.session_state['global_report_text'] += f"PGD Matrisi:\n{np.array2string(cm_pgd_global)}\n"
+                    r_text += f"PGD Matrisi:\n{np.array2string(cm_pgd_global)}\n\n"
+                    
+                r_text += f"5. SALDIRI TIPLERI ARASI MAKRO TEHDIT YANLILIK (BIAS) MATRISI [PGD - FGSM]:\n"
+                r_text += f"{np.array2string(cm_pgd_global - cm_fgsm_global)}\n"
+                r_text += "=============================================================\n\n"
             
             st.session_state["console_log"] = accumulated_log
+            st.session_state['global_report_text'] = r_text
             st.rerun()
 
         if st.session_state.get('global_analysis_triggered', False):
@@ -312,7 +351,7 @@ if uploaded_files:
                                 plt.close(fig_g_p)
 
     # ==========================================
-    # 3. SAYFA: SAKINCALARI ENGELLENMİŞ MANTIKSAL SIRALAMA VE BİAS ISI HARİTASI
+    # 3. SAYFA: SAKINCALARI ENGELLENMİŞ MANTIKSAL SIRALAMA (XAI)
     # ==========================================
     with tab3:
         if not st.session_state.get('global_analysis_triggered', False):
@@ -322,12 +361,10 @@ if uploaded_files:
             if f"computed_{ref_f}" in st.session_state:
                 ref_cm = st.session_state[f"{ref_f}_cm_pgd_global"]
                 
-                # Zafiyete göre dinamik sıralama: En kırılgandan en sağlama doğru
                 digit_accs = {c: (np.sum(ref_cm[c, c]) / max(np.sum(ref_cm[c, :]), 1) * 100) for c in range(10)}
                 sorted_options = sorted(list(range(10)), key=lambda c: digit_accs[c])
                 option_labels = {c: f"Sinif {c} (Karsilastirmali Saglamlik Orani: %{digit_accs[c]:.1f})" for c in range(10)}
                 
-                # Seçim kutusu sayfanın en üstünde konumlandırıldı
                 selected_xai_digit = st.selectbox(
                     "XAI Tehis Paneli Icin Incelemek Istediginiz Rakam Sinifini Secin (En Kirilgandan En Saglama Sirali):",
                     options=sorted_options,
@@ -394,12 +431,11 @@ if uploaded_files:
                             
                             h_b_ref.remove(); h_f_ref.remove()
                             
-                            # Mikroskobik Uzamsal Bias Haritasi (FGSM ve PGD arasindaki piksel farki)
                             cam_bias_fp = np.abs(cam_f - cam_p)
                             if np.max(cam_bias_fp) > 0: 
                                 cam_bias_fp /= np.max(cam_bias_fp)
                             
-                            st.markdown(f"##### Sinif [{selected_xai_digit}] Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
+                            st.markdown(f"##### Sinif [{selected_xai_digit}] Icin Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
                             fig_cam, axes = plt.subplots(1, 5, figsize=(13, 3.2))
                             
                             axes[0].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
@@ -430,9 +466,8 @@ if uploaded_files:
                             st.pyplot(fig_cam)
                             plt.close(fig_cam)
                             
-                            # Makro Seviye Diferansiyel Tehdit Yanlilik Haritasi (Sayfa En Altina Tasindi)
                             st.markdown("---")
-                            st.markdown("##### Tehdit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
+                            st.markdown("##### Tehudit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
                             cm_bias = cm_pgd - cm_fgsm
                             fig_bias, ax_bias = plt.subplots(figsize=(5, 3.8))
                             sns.heatmap(cm_bias, annot=True, fmt='d', cmap='coolwarm', center=0, ax=ax_bias, cbar=False)
