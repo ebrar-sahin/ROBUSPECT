@@ -16,7 +16,6 @@ from art.attacks.evasion import FastGradientMethod, ProjectedGradientDescent
 
 st.set_page_config(page_title="Robuspect MLSecOps Core", layout="wide")
 
-# Sol kenar çubuğunu tamamen devre dışı bırakan kurumsal CSS yerleşimi
 st.markdown("""
     <style>
         [data-testid="stSidebar"] {display: none !important;}
@@ -82,7 +81,7 @@ with header_col2:
 st.markdown("---")
 
 # ==========================================
-# SABİT ÜST KONTROL BARI: MODEL YÜKLEME VE RAPOR İNDİRME
+# SABİT ÜST KONTROL BARI
 # ==========================================
 top_col1, top_col2 = st.columns([2, 1])
 
@@ -142,7 +141,7 @@ if uploaded_files:
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: MODEL RÖNTGENİ, ANİMASYONLU GRAFİK VE MATRİSLER
+    # 1. SAYFA: MODEL RÖNTGENİ
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -170,11 +169,9 @@ if uploaded_files:
                 st.pyplot(fig_arch)
                 plt.close(fig_arch)
 
-                # Taşınan Çıktı Alanları İçin Hazırlık
                 st.markdown("##### Kritik Nokta Analizi")
                 chart_placeholder = st.empty()
                 
-                # Karşılaştırmalı Genel Bakış Matrisleri Alanı
                 st.markdown("##### Genel Bakis (Korelasyon Matrisleri)")
                 heatmap_placeholder_fgsm = st.empty()
                 heatmap_placeholder_pgd = st.empty()
@@ -189,7 +186,6 @@ if uploaded_files:
                     ax_c.plot(eps_range, fgsm_curve, label='FGSM Sınırı', marker='o', color='#1f77b4')
                     ax_c.plot(eps_range, pgd_curve, label='PGD Sınırı', marker='s', color='#d62728')
                     ax_c.axhline(y=85, color='orange', linestyle='--')
-                    ax_curve_min = min(min(fgsm_curve), min(pgd_curve))
                     ax_c.fill_between(eps_range, 0, 85, where=(np.array(pgd_curve) < 85), color='red', alpha=0.1)
                     ax_c.legend(loc='lower left')
                     chart_placeholder.pyplot(fig_c)
@@ -210,13 +206,12 @@ if uploaded_files:
                         plt.close(fig_hp)
 
     # ==========================================
-    # 2. SAYFA: SİBER GÜVENLİK TESTİ VE SPEKTRUM LOGLAMA (image_84ad39.png TASARIMI)
+    # 2. SAYFA: SİBER GÜVENLİK TESTİ
     # ==========================================
     with tab2:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvarı")
         trigger_btn = st.button("SİBER GÜVENLİK TESTLERİNİ EŞ ZAMANLI BAŞLAT", use_container_width=True)
         
-        # Konsol log görünümü için yer tutucu açıyoruz
         console_placeholder = st.empty()
         
         if trigger_btn:
@@ -237,14 +232,12 @@ if uploaded_files:
                     input_shape=(1, 28, 28), nb_classes=10
                 )
                 
-                # --- İSTEK: image_84ad39.png GÖRE KONSOL SPEKTRUM LOG YAPISI ---
                 log_stream = f"Genisletilmis Spektrum Simulasyonu Basladi... (Model: {f.name})\n"
                 console_placeholder.code(log_stream, language="text")
                 
                 eps_range = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
                 fgsm_curve, pgd_curve = [], []
                 
-                # Dinamik olarak hem log basıp hem eğri noktalarını tarıyoruz
                 for e in eps_range:
                     f_e = FastGradientMethod(estimator=classifier_engine, eps=e)
                     p_e = ProjectedGradientDescent(estimator=classifier_engine, norm=art_norm, eps=e, eps_step=max(e/5, 0.01), max_iter=5)
@@ -257,9 +250,8 @@ if uploaded_files:
                     
                     log_stream += f"-> epsilon = {e:.2f} | FGSM Dogrulugu: %{f_acc:.2f} | PGD Dogrulugu: %{p_acc:.2f}\n"
                     console_placeholder.code(log_stream, language="text")
-                    time.sleep(0.1) # Gerçek zamanlı akış hissi simülasyonu
+                    time.sleep(0.1)
                 
-                # Nihai Epsilon Ayarında Global Confusion Matrix Hesaplama
                 fgsm_final = FastGradientMethod(estimator=classifier_engine, eps=eps_value)
                 x_fgsm = fgsm_final.generate(x=x_test_np)
                 preds_fgsm = np.argmax(classifier_engine.predict(x_fgsm), axis=1)
@@ -270,7 +262,6 @@ if uploaded_files:
                 preds_pgd = np.argmax(classifier_engine.predict(x_pgd), axis=1)
                 cm_pgd_global = confusion_matrix(y_test_np, preds_pgd, labels=list(range(10)))
                 
-                # Hafıza Enjeksiyonu
                 st.session_state[f"{f.name}_eps_range"] = eps_range
                 st.session_state[f"{f.name}_fgsm_curve"] = fgsm_curve
                 st.session_state[f"{f.name}_pgd_curve"] = pgd_curve
@@ -284,15 +275,12 @@ if uploaded_files:
             
             st.rerun()
 
-        # Split-screen Karşılaştırmalı Ekrana Basma Aşaması
         if st.session_state.get('global_analysis_triggered', False):
             cols_page2 = st.columns(num_models)
             for idx, f in enumerate(uploaded_files):
                 if f"computed_{f.name}" in st.session_state:
                     with cols_page2[idx]:
                         st.markdown(f"#### Karsilastirmali Analiz: {f.name}")
-                        
-                        # İSTEK: Karşılaştırmalı buton tabanlı sayı değerlendirmeleri
                         st.markdown("**Sinif Bazli Karsilastirmali Matris Incelemesi**")
                         num_grid = st.columns(10)
                         digit_state_key = f"selected_digit_{f.name}"
@@ -308,7 +296,6 @@ if uploaded_files:
                                     
                         sel_d = st.session_state[digit_state_key]
                         
-                        # İSTEK: İki saldırı da seçildiyse yan yana veya alt alta tam karşılaştırma
                         if "FGSM" in selected_attacks:
                             st.markdown(f"##### FGSM - Sinif [{sel_d}] Confusion Matrix")
                             fig_sub_f, ax_sub_f = plt.subplots(figsize=(5, 1.4))
@@ -319,12 +306,12 @@ if uploaded_files:
                         if "PGD" in selected_attacks:
                             st.markdown(f"##### PGD - Sinif [{sel_d}] Confusion Matrix")
                             fig_sub_p, ax_sub_p = plt.subplots(figsize=(5, 1.4))
-                            sns.heatmap([st.session_state[f"{f.name}_cm_pgd_global"][sel_d]], annot=True, fmt='d', cmap='Reds', cbar=False, xticklabels=range(10), yticklabels=[sel_d], ax=box_target := ax_sub_p)
+                            sns.heatmap([st.session_state[f"{f.name}_cm_pgd_global"][sel_d]], annot=True, fmt='d', cmap='Reds', cbar=False, xticklabels=range(10), yticklabels=[sel_d], ax=ax_sub_p)
                             st.pyplot(fig_sub_p)
                             plt.close(fig_sub_p)
 
     # ==========================================
-    # 3. SAYFA: GELİŞMİŞ GÖSTERGELER & ÇİFT KATMANLI/ÇİFT SALDIRILI GRAD-CAM
+    # 3. SAYFA: GRAD-CAM FORENSIC
     # ==========================================
     with tab3:
         if not st.session_state.get('global_analysis_triggered', False):
@@ -333,7 +320,6 @@ if uploaded_files:
             cols_page3 = st.columns(num_models)
             for idx, f in enumerate(uploaded_files):
                 if f"computed_{f.name}" in st.session_state:
-                    cm_fgsm = st.session_state[f"{f.name}_cm_fgsm_global"]
                     cm_pgd = st.session_state[f"{f.name}_cm_pgd_global"]
                     
                     with cols_page3[idx]:
@@ -344,7 +330,6 @@ if uploaded_files:
                         eval_model.load_state_dict(m_data['weights'])
                         eval_model.eval()
                         
-                        # En kırılgan sınıf tespiti (PGD tabanlı)
                         class_scores = {c: np.sum(cm_pgd[c, c]) / max(np.sum(cm_pgd[c, :]), 1) * 100 for c in range(10)}
                         crit_class = sorted(class_scores.items(), key=lambda x: x[1])[0][0]
                         
@@ -353,7 +338,6 @@ if uploaded_files:
                         
                         selected_layer = st.selectbox(f"Derin Katman Mimarisi ({f.name}):", ["conv1", "conv2"], index=1, key=f"tab3_lyr_{f.name}")
                         
-                        # Grad-CAM Motoru
                         g_list, a_list = [], []
                         def h_b(module, gi, go): g_list.append(go[0])
                         def h_f(module, i, o): a_list.append(o)
@@ -384,7 +368,6 @@ if uploaded_files:
 
                         cam_c, p_c, conf_c = compute_cam(img_clean_t)
                         
-                        # İSTEK: Seçilen iki saldırı için de Grad-CAM haritalarının karşılaştırmalı basılması
                         if "FGSM" in selected_attacks:
                             st.markdown("##### FGSM Adli Bilisim Aktivasyon Şeması")
                             img_fgsm_t = torch.tensor(st.session_state[f"{f.name}_saved_x_fgsm"][t_idx:t_idx+1]).to(device)
@@ -398,7 +381,7 @@ if uploaded_files:
                             axes_f[0].axis('off')
                             
                             axes_f[1].imshow(st.session_state[f"{f.name}_saved_x_fgsm"][t_idx].squeeze(), cmap='gray')
-                            axes[1_ref := 1].imshow(cam_f, cmap='jet', alpha=0.5)
+                            axes_f[1].imshow(cam_f, cmap='jet', alpha=0.5)
                             axes_f[1].set_title(f"FGSM Odak Haritasi (%{conf_f:.1f})", fontsize=8)
                             axes_f[1].axis('off')
                             
