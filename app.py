@@ -197,7 +197,8 @@ if uploaded_files:
                     if "PGD" in selected_attacks and f"{f.name}_cm_pgd_global" in st.session_state:
                         st.markdown("###### PGD Genel Korelasyon Matrisi (Tüm Sınıflar)")
                         fig_hp, ax_hp = plt.subplots(figsize=(5, 4))
-                        sns.heatmap(st.session_state[f"{f.name}_cm_pgd_global"], annot=True, fmt='d', cmap='Reds', ax=hp_axis := ax_hp, cbar=False)
+                        # TESPİT EDİLEN CRITICAL FIX: Sözdizimi hatası üreten ax=hp_axis := ax_hp yapısı temizlendi.
+                        sns.heatmap(st.session_state[f"{f.name}_cm_pgd_global"], annot=True, fmt='d', cmap='Reds', ax=ax_hp, cbar=False)
                         st.pyplot(fig_hp)
                         plt.close(fig_hp)
                 else:
@@ -313,24 +314,20 @@ if uploaded_files:
                                 plt.close(fig_g_p)
 
     # ==========================================
-    # 3. SAYFA: SAKINCA ENGELLENMİŞ MANTIKSAL SIRALAMA (XAI)
+    # 3. SAYFA: SAKINCALARI ENGELLENMİŞ MANTIKSAL SIRALAMA (XAI)
     # ==========================================
     with tab3:
         if not st.session_state.get('global_analysis_triggered', False):
             st.info("Lütfen öncelikle '2. Sayfa' üzerinden siber güvenlik analizini tetikleyin.")
         else:
-            # Birinci model referans alınarak zafiyet sıralamasının dinamik hesaplanması
             ref_f = uploaded_files[0].name
             if f"computed_{ref_f}" in st.session_state:
                 ref_cm = st.session_state[f"{ref_f}_cm_pgd_global"]
                 
-                # İSTEK: En cok hata yapandan en az hata yapana dogru (artan saglamlik oranina gore) sirali liste
                 digit_accs = {c: (np.sum(ref_cm[c, c]) / max(np.sum(ref_cm[c, :]), 1) * 100) for c in range(10)}
                 sorted_options = sorted(list(range(10)), key=lambda c: digit_accs[c])
-                
                 option_labels = {c: f"Sinif {c} (Karsilastirmali Saglamlik Orani: %{digit_accs[c]:.1f})" for c in range(10)}
                 
-                # Menü sayfanın en üstünde konumlandırıldı
                 selected_xai_digit = st.selectbox(
                     "XAI Tehis Paneli Icin Incelemek Istediginiz Rakam Sinifini Secin (En Kirilgandan En Saglama Sirali):",
                     options=sorted_options,
@@ -348,7 +345,6 @@ if uploaded_files:
                         with cols_page3[idx]:
                             st.markdown(f"### Tehis Merkezi: {f.name}")
                             
-                            # Alarm esigi kontrolu
                             if digit_accs[selected_xai_digit] < 85.0:
                                 st.error(f"Kritik Zafiyet Alarmi: Secilen Sinif [{selected_xai_digit}] guvenlik esiginin altindadir!")
                             
@@ -402,7 +398,6 @@ if uploaded_files:
                             if np.max(cam_bias_fp) > 0: 
                                 cam_bias_fp /= np.max(cam_bias_fp)
                             
-                            # İSTEK: Secilen ogreye ait Grad-CAM gorselleri kirilma yapmadan alt tarafta listelenir
                             st.markdown(f"##### Sinif [{selected_xai_digit}] Icin Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
                             fig_cam, axes = plt.subplots(1, 5, figsize=(13, 3.2))
                             
@@ -434,9 +429,8 @@ if uploaded_files:
                             st.pyplot(fig_cam)
                             plt.close(fig_cam)
                             
-                            # İSTEK: Tehdit Yanlilik Heatmap analizi sayfanın en altina tasindi
                             st.markdown("---")
-                            st.markdown("##### Tehdit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
+                            st.markdown("##### Tehudit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
                             cm_bias = cm_pgd - cm_fgsm
                             fig_bias, ax_bias = plt.subplots(figsize=(5, 3.8))
                             sns.heatmap(cm_bias, annot=True, fmt='d', cmap='coolwarm', center=0, ax=ax_bias, cbar=False)
