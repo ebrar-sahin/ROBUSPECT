@@ -16,7 +16,6 @@ from art.attacks.evasion import FastGradientMethod, ProjectedGradientDescent
 
 st.set_page_config(page_title="Robuspect MLSecOps Core", layout="wide")
 
-# Sol kenar çubuğunu tamamen kapatan kurumsal CSS yerleşimi
 st.markdown("""
     <style>
         [data-testid="stSidebar"] {display: none !important;}
@@ -140,7 +139,7 @@ if uploaded_files:
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: YER TUTUCULAR KALDIRILDI - NATIVE GÖSTERİM SİSTEMİ
+    # 1. SAYFA: MODEL RÖNTGENİ VE SABİTLENMİŞ GRAFİKLER
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -168,7 +167,6 @@ if uploaded_files:
                 st.pyplot(fig_arch)
                 plt.close(fig_arch)
 
-                # Grafik ve Matris Gösterim Havuzu (Çizim Hataları Tamamen Düzeltildi)
                 m_state_key = f"computed_{f.name}"
                 if st.session_state.get(m_state_key, False):
                     st.markdown("##### Kritik Nokta Analizi")
@@ -205,12 +203,16 @@ if uploaded_files:
                     st.info("Kritik nokta analizi ve genel bakis matrislerinin hesaplanmasi icin lutfen 2. SAYFA uzerinden siber guvenlik testlerini baslatin.")
 
     # ==========================================
-    # 2. SAYFA: SİBER GÜVENLİK TESTİ
+    # 2. SAYFA: SİBER GÜVENLİK TESTİ VE KALICI KONSOL GÜNLÜĞÜ
     # ==========================================
     with tab2:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvarı")
         trigger_btn = st.button("SİBER GÜVENLİK TESTLERİNİ EŞ ZAMANLI BAŞLAT", use_container_width=True)
         
+        # HATA ÇÖZÜMÜ: Eğer test daha önce tetiklendiyse hafızadaki günlüğü asla silme, ekranda sabit tut
+        if st.session_state.get('global_analysis_triggered', False) and "console_log" in st.session_state:
+            st.code(st.session_state["console_log"], language="text")
+            
         console_placeholder = st.empty()
         
         if trigger_btn:
@@ -218,6 +220,7 @@ if uploaded_files:
             st.session_state['global_report_text'] = "ROBUSPECT MODEL GÜVENLİK DENETİM RAPORU - 2026\n=============================================================\n"
             
             art_norm = np.inf if norm_type == "L-infinity (L_inf)" else (2 if norm_type == "L-2 Norm" else 1)
+            accumulated_log = ""
 
             for f in uploaded_files:
                 m_data = st.session_state['models_dict'][f.name]
@@ -231,8 +234,8 @@ if uploaded_files:
                     input_shape=(1, 28, 28), nb_classes=10
                 )
                 
-                log_stream = f"Genisletilmis Spektrum Simulasyonu Basladi... (Model: {f.name})\n"
-                console_placeholder.code(log_stream, language="text")
+                accumulated_log += f"Genisletilmis Spektrum Simulasyonu Basladi... (Model: {f.name})\n"
+                console_placeholder.code(accumulated_log, language="text")
                 
                 eps_range = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
                 fgsm_curve, pgd_curve = [], []
@@ -247,9 +250,9 @@ if uploaded_files:
                     fgsm_curve.append(f_acc)
                     pgd_curve.append(p_acc)
                     
-                    log_stream += f"-> epsilon = {e:.2f} | FGSM Dogrulugu: %{f_acc:.2f} | PGD Dogrulugu: %{p_acc:.2f}\n"
-                    console_placeholder.code(log_stream, language="text")
-                    time.sleep(0.02)
+                    accumulated_log += f"-> epsilon = {e:.2f} | FGSM Dogrulugu: %{f_acc:.2f} | PGD Dogrulugu: %{p_acc:.2f}\n"
+                    console_placeholder.code(accumulated_log, language="text")
+                    time.sleep(0.01)
                 
                 fgsm_final = FastGradientMethod(estimator=classifier_engine, eps=STANDARD_EPSILON)
                 x_fgsm = fgsm_final.generate(x=x_test_np)
@@ -276,6 +279,8 @@ if uploaded_files:
                 if "PGD" in selected_attacks:
                     st.session_state['global_report_text'] += f"PGD Matrisi:\n{np.array2string(cm_pgd_global)}\n"
             
+            # Yenilenme öncesi tüm log dökümünü kalıcı hafızaya mühürlüyoruz
+            st.session_state["console_log"] = accumulated_log
             st.rerun()
 
         if st.session_state.get('global_analysis_triggered', False):
@@ -320,8 +325,6 @@ if uploaded_files:
             cols_page3 = st.columns(num_models)
             for idx, f in enumerate(uploaded_files):
                 if f"computed_{f.name}" in st.session_state:
-                    cm_pgd = st.session_state[f"{f.name}_cm_pgd_global"]
-                    
                     with cols_page3[idx]:
                         st.markdown(f"#### Tehis Detayi: {f.name}")
                         m_data = st.session_state['models_dict'][f.name]
