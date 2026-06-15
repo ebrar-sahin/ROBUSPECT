@@ -25,7 +25,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# GOMULU MODEL MIMARISI VE VERI SETI PARAMETRELERİ
+# GÖMÜLÜ MODEL MİMARİSİ VE VERİ SETİ PARAMETRELERİ
 # ==========================================
 class MNISTCNN(nn.Module):
     def __init__(self):
@@ -65,7 +65,7 @@ TEST_RATIO = 14.3
 STANDARD_EPSILON = 0.15
 
 # ==========================================
-# KURUMSAL UST GIRIS VE BASLIK CUBUGU
+# KURUMSAL ÜST GİRİŞ VE BAŞLIK ÇUBUĞU
 # ==========================================
 header_col1, header_col2 = st.columns([1.2, 5.8])
 with header_col1:
@@ -77,13 +77,13 @@ with header_col1:
     """, unsafe_allow_html=True)
 
 with header_col2:
-    st.markdown("<h2 style='margin-top: 0px; padding-top: 2px;'>Robuspect: Merkezi Siber Guvenilirlik Test Motoru</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='margin-top: 0px; padding-top: 2px;'>Robuspect: Merkezi Siber Güvenilirlik Test Motoru</h2>", unsafe_allow_html=True)
     st.markdown("<h5 style='color: #8F94B5; margin-top: -8px;'>Modeller Icin Karsilastirmali Zafiyet Analizi ve Gorsel Adli Bilisim Platformu</h5>", unsafe_allow_html=True)
 
 st.markdown("---")
 
 # ==========================================
-# SABIT UST KONTROL BARI
+# SABİT ÜST KONTROL BARI
 # ==========================================
 top_col1, top_col2 = st.columns([2, 1])
 
@@ -116,7 +116,7 @@ if uploaded_files:
                 p_lr = state_dict.get('learning_rate', 0.0010)
                 weights = state_dict['model_state_dict']
             else:
-                p_epoch = "3 (Agirlik Matrisinden Saptandi)"
+                p_epoch = "3 (Ağırlık Matrisinden Saptandı)"
                 p_opt = "Adam / SGD (Anatomik Saptama)"
                 p_lr = 0.0010
                 weights = state_dict
@@ -129,7 +129,7 @@ if uploaded_files:
         st.session_state['models_dict'] = models_dict
         st.session_state['loaded_filenames'] = loaded_filenames
 
-    st.markdown("### Tehdit Konfigurasyon Ayarlari")
+    st.markdown("### Tehdit Konfigürasyon Ayarlari")
     cfg_c1, cfg_c2 = st.columns(2)
     with cfg_c1:
         selected_attacks = st.multiselect("Saldiri Turleri:", ["FGSM", "PGD"], default=["FGSM", "PGD"])
@@ -140,7 +140,7 @@ if uploaded_files:
     num_models = len(uploaded_files)
     
     # ==========================================
-    # 1. SAYFA: MODEL RONTGENI
+    # 1. SAYFA: MODEL RÖNTGENİ
     # ==========================================
     with tab1:
         cols = st.columns(num_models)
@@ -188,27 +188,27 @@ if uploaded_files:
                     
                     st.markdown("##### Genel Bakis (Korelasyon Matrisleri)")
                     if "FGSM" in selected_attacks and f"{f.name}_cm_fgsm_global" in st.session_state:
-                        st.markdown("###### FGSM Genel Korelasyon Matrisi (Tum Siniflar)")
+                        st.markdown("###### FGSM Genel Korelasyon Matrisi (Tüm Sınıflar)")
                         fig_hf, ax_hf = plt.subplots(figsize=(5, 4))
                         sns.heatmap(st.session_state[f"{f.name}_cm_fgsm_global"], annot=True, fmt='d', cmap='Blues', ax=ax_hf, cbar=False)
                         st.pyplot(fig_hf)
                         plt.close(fig_hf)
                         
                     if "PGD" in selected_attacks and f"{f.name}_cm_pgd_global" in st.session_state:
-                        st.markdown("###### PGD Genel Korelasyon Matrisi (Tum Siniflar)")
+                        st.markdown("###### PGD Genel Korelasyon Matrisi (Tüm Sınıflar)")
                         fig_hp, ax_hp = plt.subplots(figsize=(5, 4))
-                        sns.heatmap(st.session_state[f"{f.name}_cm_pgd_global"], annot=True, fmt='d', cmap='Reds', ax=ax_hp, cbar=False)
+                        sns.heatmap(st.session_state[f"{f.name}_cm_pgd_global"], annot=True, fmt='d', cmap='Reds', ax=hp_axis := ax_hp, cbar=False)
                         st.pyplot(fig_hp)
                         plt.close(fig_hp)
                 else:
-                    st.info("[SISTEM] Kritik nokta analizi ve genel bakis matrislerinin hesaplanmasi icin lutfen 2. SAYFA uzerinden siber guvenlik testlerini baslatin.")
+                    st.info("Kritik nokta analizi ve genel bakis matrislerinin hesaplanmasi icin lutfen 2. SAYFA uzerinden siber guvenlik testlerini baslatin.")
 
     # ==========================================
-    # 2. SAYFA: SIBER GUVENLIK TESTI
+    # 2. SAYFA: SİBER GÜVENLİK TESTİ
     # ==========================================
     with tab2:
         st.markdown("### Siber Dayaniklilik Analiz Laboratuvari")
-        trigger_btn = st.button("SIBER GUVENLIK TESTLERINI ES ZAMANLI BASLAT", use_container_width=True)
+        trigger_btn = st.button("SİBER GÜVENLİK TESTLERİNİ EŞ ZAMANLI BAŞLAT", use_container_width=True)
         
         console_placeholder = st.empty()
         
@@ -217,7 +217,7 @@ if uploaded_files:
             
         if trigger_btn:
             st.session_state['global_analysis_triggered'] = True
-            st.session_state['global_report_text'] = "ROBUSPECT MODEL GUVENLIK DENETIM RAPORU - 2026\n=============================================================\n"
+            st.session_state['global_report_text'] = "ROBUSPECT MODEL GÜVENLİK DENETİM RAPORU - 2026\n=============================================================\n"
             
             art_norm = np.inf if norm_type == "L-infinity (L_inf)" else (2 if norm_type == "L-2 Norm" else 1)
             accumulated_log = ""
@@ -298,7 +298,7 @@ if uploaded_files:
                                 fig_g_f, ax_g_f = plt.subplots(figsize=(5, 4.2))
                                 sns.heatmap(cm_f_live, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax_g_f)
                                 ax_g_f.set_xlabel("Tahmin")
-                                ax_g_f.set_ylabel("Gercek")
+                                ax_g_f.set_ylabel("Gerçek")
                                 st.pyplot(fig_g_f)
                                 plt.close(fig_g_f)
                                 
@@ -308,118 +308,139 @@ if uploaded_files:
                                 fig_g_p, ax_g_p = plt.subplots(figsize=(5, 4.2))
                                 sns.heatmap(cm_p_live, annot=True, fmt='d', cmap='Reds', cbar=False, ax=ax_g_p)
                                 ax_g_p.set_xlabel("Tahmin")
-                                ax_g_p.set_ylabel("Gercek")
+                                ax_g_p.set_ylabel("Gerçek")
                                 st.pyplot(fig_g_p)
                                 plt.close(fig_g_p)
 
     # ==========================================
-    # 3. SAYFA: COOOLWARM -> coolwarm DUZELTMESI VE XAI SUITE
+    # 3. SAYFA: SAKINCA ENGELLENMİŞ MANTIKSAL SIRALAMA (XAI)
     # ==========================================
     with tab3:
         if not st.session_state.get('global_analysis_triggered', False):
-            st.info("[SISTEM] Lutfen oncelikle '2. Sayfa' uzerinden siber guvenlik analizini tetikleyin.")
+            st.info("Lütfen öncelikle '2. Sayfa' üzerinden siber güvenlik analizini tetikleyin.")
         else:
-            selected_xai_digit = st.selectbox("XAI Tehis Paneli Icin Incelemek Istediginiz Rakam Sinifini Secin (0-9):", list(range(10)), index=4)
-            
-            cols_page3 = st.columns(num_models)
-            for idx, f in enumerate(uploaded_files):
-                if f"computed_{f.name}" in st.session_state:
-                    cm_fgsm = st.session_state[f"{f.name}_cm_fgsm_global"]
-                    cm_pgd = st.session_state[f"{f.name}_cm_pgd_global"]
-                    x_fgsm_saved = st.session_state[f"{f.name}_saved_x_fgsm"]
-                    x_pgd_saved = st.session_state[f"{f.name}_saved_x_pgd"]
-                    
-                    with cols_page3[idx]:
-                        st.markdown(f"#### Tehis Merkezi: {f.name}")
+            # Birinci model referans alınarak zafiyet sıralamasının dinamik hesaplanması
+            ref_f = uploaded_files[0].name
+            if f"computed_{ref_f}" in st.session_state:
+                ref_cm = st.session_state[f"{ref_f}_cm_pgd_global"]
+                
+                # İSTEK: En cok hata yapandan en az hata yapana dogru (artan saglamlik oranina gore) sirali liste
+                digit_accs = {c: (np.sum(ref_cm[c, c]) / max(np.sum(ref_cm[c, :]), 1) * 100) for c in range(10)}
+                sorted_options = sorted(list(range(10)), key=lambda c: digit_accs[c])
+                
+                option_labels = {c: f"Sinif {c} (Karsilastirmali Saglamlik Orani: %{digit_accs[c]:.1f})" for c in range(10)}
+                
+                # Menü sayfanın en üstünde konumlandırıldı
+                selected_xai_digit = st.selectbox(
+                    "XAI Tehis Paneli Icin Incelemek Istediginiz Rakam Sinifini Secin (En Kirilgandan En Saglama Sirali):",
+                    options=sorted_options,
+                    format_func=lambda x: option_labels[x]
+                )
+                
+                cols_page3 = st.columns(num_models)
+                for idx, f in enumerate(uploaded_files):
+                    if f"computed_{f.name}" in st.session_state:
+                        cm_fgsm = st.session_state[f"{f.name}_cm_fgsm_global"]
+                        cm_pgd = st.session_state[f"{f.name}_cm_pgd_global"]
+                        x_fgsm_saved = st.session_state[f"{f.name}_saved_x_fgsm"]
+                        x_pgd_saved = st.session_state[f"{f.name}_saved_x_pgd"]
                         
-                        st.markdown("##### Tehdit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
-                        cm_bias = cm_pgd - cm_fgsm
-                        fig_bias, ax_bias = plt.subplots(figsize=(5, 3.8))
-                        
-                        # CRITICAL FIX: 'Coolwarm' degeri hataya yol aciyordu, 'coolwarm' olarak revize edildi.
-                        sns.heatmap(cm_bias, annot=True, fmt='d', cmap='coolwarm', center=0, ax=ax_bias, cbar=False)
-                        ax_bias.set_xlabel("Tahmin Saptirma Yonu")
-                        ax_bias.set_ylabel("Gercek Rakam Sinifi")
-                        st.pyplot(fig_bias)
-                        plt.close(fig_bias)
-                        
-                        m_data = st.session_state['models_dict'][f.name]
-                        eval_model = MNISTCNN().to(device)
-                        eval_model.load_state_dict(m_data['weights'])
-                        eval_model.eval()
-                        
-                        selected_layer = st.selectbox(f"Incelenecek Evrisim Katmani ({f.name}):", ["conv1", "conv2"], index=1, key=f"tab3_lyr_{f.name}")
-                        
-                        g_list, a_list = [], []
-                        def h_b(module, gi, go): g_list.append(go[0])
-                        def h_f(module, i, o): a_list.append(o)
-                        
-                        target_layer_module = getattr(eval_model, selected_layer)
-                        h_b_ref = target_layer_module.register_full_backward_hook(h_b)
-                        h_f_ref = target_layer_module.register_forward_hook(h_f)
-                        
-                        digit_indices = np.where(y_test_np == selected_xai_digit)[0]
-                        t_idx = digit_indices[0] if len(digit_indices) > 0 else 0
-                        img_clean_t = torch.tensor(x_test_np[t_idx:t_idx+1]).to(device)
-                        
-                        def compute_cam(img_tensor):
-                            g_list.clear(); a_list.clear()
-                            out = eval_model(img_tensor)
-                            p_cls = torch.argmax(out, dim=1).item()
-                            conf = F.softmax(out, dim=1)[0, p_cls].item() * 100
-                            eval_model.zero_grad()
-                            out[0, p_cls].backward()
-                            gr = g_list[0].cpu().data.numpy()[0]
-                            ac = a_list[0].cpu().data.numpy()[0]
-                            w = np.mean(gr, axis=(1, 2))
-                            cam = np.zeros(ac.shape[1:], dtype=np.float32)
-                            for i, weight_val in enumerate(w): cam += weight_val * ac[i]
-                            cam = np.maximum(cam, 0)
-                            if np.max(cam) > 0: cam /= np.max(cam)
-                            cam = ndimage.zoom(cam, (28 / cam.shape[0], 28 / cam.shape[1]), order=1)
-                            return cam, p_cls, conf
+                        with cols_page3[idx]:
+                            st.markdown(f"### Tehis Merkezi: {f.name}")
+                            
+                            # Alarm esigi kontrolu
+                            if digit_accs[selected_xai_digit] < 85.0:
+                                st.error(f"Kritik Zafiyet Alarmi: Secilen Sinif [{selected_xai_digit}] guvenlik esiginin altindadir!")
+                            
+                            m_data = st.session_state['models_dict'][f.name]
+                            eval_model = MNISTCNN().to(device)
+                            eval_model.load_state_dict(m_data['weights'])
+                            eval_model.eval()
+                            
+                            selected_layer = st.selectbox(f"Incelenecek Evrisim Katmani ({f.name}):", ["conv1", "conv2"], index=1, key=f"tab3_lyr_{f.name}")
+                            
+                            g_list, a_list = [], []
+                            def h_b(module, gi, go): g_list.append(go[0])
+                            def h_f(module, i, o): a_list.append(o)
+                            
+                            target_layer_module = getattr(eval_model, selected_layer)
+                            h_b_ref = target_layer_module.register_full_backward_hook(h_b)
+                            h_f_ref = target_layer_module.register_forward_hook(h_f)
+                            
+                            digit_indices = np.where(y_test_np == selected_xai_digit)[0]
+                            t_idx = digit_indices[0] if len(digit_indices) > 0 else 0
+                            img_clean_t = torch.tensor(x_test_np[t_idx:t_idx+1]).to(device)
+                            
+                            def compute_cam(img_tensor):
+                                g_list.clear(); a_list.clear()
+                                out = eval_model(img_tensor)
+                                p_cls = torch.argmax(out, dim=1).item()
+                                conf = F.softmax(out, dim=1)[0, p_cls].item() * 100
+                                eval_model.zero_grad()
+                                out[0, p_cls].backward()
+                                gr = g_list[0].cpu().data.numpy()[0]
+                                ac = a_list[0].cpu().data.numpy()[0]
+                                w = np.mean(gr, axis=(1, 2))
+                                cam = np.zeros(ac.shape[1:], dtype=np.float32)
+                                for i, weight_val in enumerate(w): cam += weight_val * ac[i]
+                                cam = np.maximum(cam, 0)
+                                if np.max(cam) > 0: cam /= np.max(cam)
+                                cam = ndimage.zoom(cam, (28 / cam.shape[0], 28 / cam.shape[1]), order=1)
+                                return cam, p_cls, conf
 
-                        cam_c, p_c, conf_c = compute_cam(img_clean_t)
-                        
-                        img_fgsm_t = torch.tensor(x_fgsm_saved[t_idx:t_idx+1]).to(device)
-                        cam_f, p_f, conf_f = compute_cam(img_fgsm_t)
-                        
-                        img_pgd_t = torch.tensor(x_pgd_saved[t_idx:t_idx+1]).to(device)
-                        cam_p, p_p, conf_p = compute_cam(img_pgd_t)
-                        
-                        h_b_ref.remove(); h_f_ref.remove()
-                        
-                        cam_bias_fp = np.abs(cam_f - cam_p)
-                        if np.max(cam_bias_fp) > 0: 
-                            cam_bias_fp /= np.max(cam_bias_fp)
-                        
-                        st.markdown(f"##### Sinif [{selected_xai_digit}] Icin Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
-                        fig_cam, axes = plt.subplots(1, 5, figsize=(13, 3.2))
-                        
-                        axes[0].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
-                        axes[0].set_title(f"Temiz Girdi\nTahmin: {p_c}", fontsize=7, fontweight='bold')
-                        axes[0].axis('off')
-                        
-                        axes[1].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
-                        axes[1].imshow(cam_c, cmap='jet', alpha=0.45)
-                        axes[1].contour(cam_c, colors='white', alpha=0.2, linewidths=0.4)
-                        axes[1].set_title(f"Temiz Odak (%{conf_c:.1f})", fontsize=7)
-                        axes[1].axis('off')
-                        
-                        axes[2].imshow(x_fgsm_saved[t_idx].squeeze(), cmap='gray')
-                        axes[2].imshow(cam_f, cmap='jet', alpha=0.45)
-                        axes[2].set_title(f"FGSM Odak (%{conf_f:.1f})\nTahmin: {p_f}", fontsize=7)
-                        axes[2].axis('off')
-                        
-                        axes[3].imshow(x_pgd_saved[t_idx].squeeze(), cmap='gray')
-                        axes[3].imshow(cam_p, cmap='jet', alpha=0.45)
-                        axes[3].set_title(f"PGD Odak (%{conf_p:.1f})\nTahmin: {p_p}", fontsize=7)
-                        axes[3].axis('off')
-                        
-                        axes[4].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
-                        axes[4].imshow(cam_bias_fp, cmap='hot', alpha=0.6)
-                        axes[4].set_title("Saldiri Tipleri Arasi\nOdak Sapma Haritasi", color='orange', fontsize=7, fontweight='bold')
-                        axes[4].axis('off')
-                        
-                        st.pyplot(fig_cam)
-                        plt.close(fig_cam)
+                            cam_c, p_c, conf_c = compute_cam(img_clean_t)
+                            
+                            img_fgsm_t = torch.tensor(x_fgsm_saved[t_idx:t_idx+1]).to(device)
+                            cam_f, p_f, conf_f = compute_cam(img_fgsm_t)
+                            
+                            img_pgd_t = torch.tensor(x_pgd_saved[t_idx:t_idx+1]).to(device)
+                            cam_p, p_p, conf_p = compute_cam(img_pgd_t)
+                            
+                            h_b_ref.remove(); h_f_ref.remove()
+                            
+                            cam_bias_fp = np.abs(cam_f - cam_p)
+                            if np.max(cam_bias_fp) > 0: 
+                                cam_bias_fp /= np.max(cam_bias_fp)
+                            
+                            # İSTEK: Secilen ogreye ait Grad-CAM gorselleri kirilma yapmadan alt tarafta listelenir
+                            st.markdown(f"##### Sinif [{selected_xai_digit}] Icin Mikroskobik Aktivasyon ve Odak Sapma Haritasi")
+                            fig_cam, axes = plt.subplots(1, 5, figsize=(13, 3.2))
+                            
+                            axes[0].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
+                            axes[0].set_title(f"Temiz Girdi\nTahmin: {p_c}", fontsize=7, fontweight='bold')
+                            axes[0].axis('off')
+                            
+                            axes[1].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
+                            axes[1].imshow(cam_c, cmap='jet', alpha=0.45)
+                            axes[1].contour(cam_c, colors='white', alpha=0.2, linewidths=0.4)
+                            axes[1].set_title(f"Temiz Odak (%{conf_c:.1f})", fontsize=7)
+                            axes[1].axis('off')
+                            
+                            axes[2].imshow(x_fgsm_saved[t_idx].squeeze(), cmap='gray')
+                            axes[2].imshow(cam_f, cmap='jet', alpha=0.45)
+                            axes[2].set_title(f"FGSM Odak (%{conf_f:.1f})\nTahmin: {p_f}", fontsize=7)
+                            axes[2].axis('off')
+                            
+                            axes[3].imshow(x_pgd_saved[t_idx].squeeze(), cmap='gray')
+                            axes[3].imshow(cam_p, cmap='jet', alpha=0.45)
+                            axes[3].set_title(f"PGD Odak (%{conf_p:.1f})\nTahmin: {p_p}", fontsize=7)
+                            axes[3].axis('off')
+                            
+                            axes[4].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
+                            axes[4].imshow(cam_bias_fp, cmap='hot', alpha=0.6)
+                            axes[4].set_title("Saldiri Tipleri Arasi\nOdak Sapma Haritasi", color='orange', fontsize=7, fontweight='bold')
+                            axes[4].axis('off')
+                            
+                            st.pyplot(fig_cam)
+                            plt.close(fig_cam)
+                            
+                            # İSTEK: Tehdit Yanlilik Heatmap analizi sayfanın en altina tasindi
+                            st.markdown("---")
+                            st.markdown("##### Tehdit Yanlilik (Bias) Diferansiyel Isi Haritasi [PGD - FGSM]")
+                            cm_bias = cm_pgd - cm_fgsm
+                            fig_bias, ax_bias = plt.subplots(figsize=(5, 3.8))
+                            sns.heatmap(cm_bias, annot=True, fmt='d', cmap='coolwarm', center=0, ax=ax_bias, cbar=False)
+                            ax_bias.set_xlabel("Tahmin Saptirma Yonu")
+                            ax_bias.set_ylabel("Gercek Rakam Sinifi")
+                            st.pyplot(fig_bias)
+                            plt.close(fig_bias)
