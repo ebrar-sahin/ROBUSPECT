@@ -15,7 +15,7 @@ from art.attacks.evasion import FastGradientMethod, ProjectedGradientDescent
 
 st.set_page_config(page_title="Robuspect MLSecOps Core", layout="wide")
 
-# Sol çubuğu (Sidebar) tamamen devre dışı bırakıp gizleyen CSS enjeksiyonu
+# Sol çubuğu tamamen devre dışı bırakan CSS enjeksiyonu
 st.markdown("""
     <style>
         [data-testid="stSidebar"] {display: none !important;}
@@ -24,7 +24,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# GÖMÜLÜ MODEL MİMARİSİ VE VERİ SETİ
+# GÖMÜLÜ MODEL MİMARİSİ VE VERİ SETİ ALTYAPISI
 # ==========================================
 class MNISTCNN(nn.Module):
     def __init__(self):
@@ -48,7 +48,7 @@ class MNISTCNN(nn.Module):
 def load_embedded_test_data():
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.0,), (1.0,))])
     test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-    test_loader = DataLoader(test_dataset, batch_size=300, shuffle=False) # Raporlama kararlılığı için optimize edildi
+    test_loader = DataLoader(test_dataset, batch_size=300, shuffle=False)
     x_t, y_t = next(iter(test_loader))
     return x_t.numpy(), y_t.numpy()
 
@@ -57,27 +57,50 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 criterion = nn.CrossEntropyLoss()
 
 # ==========================================
-# SOL ÜST PANEL VE BAŞLIK ALANI
+# KURUMSAL HEADER BANNER
 # ==========================================
-head_col1, head_col2 = st.columns([1, 4])
-with head_col1:
-    st.info("🛡️ **Robuspect Lab**\n\n*MLSecOps Analiz Birimi*")
+header_col1, header_col2 = st.columns([1.2, 5.8])
+with header_col1:
+    st.markdown("""
+        <div style='background-color: #1E2235; padding: 16px; border-radius: 8px; border: 1px solid #2D314E; text-align: center;'>
+            <span style='font-size: 26px;'>🛡️</span>
+            <div style='font-weight: bold; color: white; font-size: 14px; margin-top: 4px;'>Robuspect Lab</div>
+            <div style='font-style: italic; color: #8F94B5; font-size: 11px;'>MLSecOps Analiz Birimi</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.title("🛡️ Robuspect: Merkezi Siber Güvenilirlik Test Motoru")
-st.subheader("Modeller İçin Karşılaştırmalı Zafiyet Analizi ve Görsel Adli Bilişim Platformu")
+with header_col2:
+    st.markdown("<h2 style='margin-top: 0px; padding-top: 2px;'>Robuspect: Merkezi Siber Güvenilirlik Test Motoru</h2>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #8F94B5; margin-top: -8px;'>Modeller İçin Karşılaştırmalı Zafiyet Analizi ve Görsel Adli Bilişim Platformu</h5>", unsafe_allow_html=True)
+
 st.markdown("---")
 
-# Giriş Ekranı: Dosya İsteme
-uploaded_weights = st.file_uploader("🚀 BAŞLAMAK İÇİN: Eğittiğiniz Model Ağırlık Dosyasını Seçin (.pth)", type=["pth", "pt"])
+# ==========================================
+# İSTEK: EN ÜSTTE SABİT MODEL YÜKLEME VE RAPOR İNDİRME YAN YANA
+# ==========================================
+top_col1, top_col2 = st.columns([2, 1])
 
-if uploaded_weights is None:
-    st.warning("⚠️ Tarama motorunu başlatabilmek için lütfen yukarıdaki alana geçerli bir PyTorch model ağırlık dosyası (.pth) yükleyin.")
-else:
-    # Model yükleme ve akıllı öngörü tetikleyicisi
+with top_col1:
+    uploaded_weights = st.file_uploader("🚀 BAŞLAMAK İÇİN: Model Ağırlık Dosyasını Seçin (.pth)", type=["pth", "pt"])
+
+with top_col2:
+    st.markdown("<div style='padding-top: 4px;'></div>", unsafe_allow_html=True)
+    if st.session_state.get('analysis_triggered', False) and 'report_text' in st.session_state:
+        st.download_button(
+            label="📄 RESMİ GÜVENLİK RAPORUNU (.TXT) İNDİR",
+            data=st.session_state['report_text'],
+            file_name="robuspect_model_guvenlik_raporu.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    else:
+        st.button("📄 RAPOR HAZIR DEĞİL (ÖNCE TESTİ TETİKLEYİN)", disabled=True, use_container_width=True)
+
+if uploaded_weights is not None:
+    # Durum Koruma (State-Loss) Mekanizması
     if 'model_loaded' not in st.session_state or st.session_state.get('last_uploaded') != uploaded_weights.name:
-        with st.spinner("Model ağırlık matrisleri çözümleniyor, parametreler tahmin ediliyor..."):
+        with st.spinner("Model anatomisi çözümleniyor..."):
             state_dict = torch.load(uploaded_weights, map_location=torch.device('cpu'))
-            
             if isinstance(state_dict, dict) and 'model_state_dict' in state_dict:
                 st.session_state['predicted_epoch'] = state_dict.get('epoch', 3)
                 st.session_state['predicted_opt'] = state_dict.get('optimizer_name', 'Adam (Tahmin Edildi)')
@@ -92,7 +115,6 @@ else:
             st.session_state['model_loaded'] = True
             st.session_state['last_uploaded'] = uploaded_weights.name
 
-    # Hafızadaki değişkenleri lokal kullanıma açalım
     state_dict = st.session_state['pure_state_dict']
     predicted_epoch = st.session_state['predicted_epoch']
     predicted_opt = st.session_state['predicted_opt']
@@ -108,82 +130,73 @@ else:
         optimizer=dummy_optimizer, input_shape=(1, 28, 28), nb_classes=10
     )
 
-    st.success("🟢 Model Başarıyla Kaydedildi ve Kalıba Döküldü!")
-    
-    with st.expander("📋 Otomatik Çıkarılan Model Künyesi ve Katman Anatomisi", expanded=True):
-        k1, k2, k3 = st.columns(3)
-        k1.metric("Tahmin Edilen Eğitim Süresi", f"{predicted_epoch}")
-        k2.metric("Saptanan Optimizasyon", f"{predicted_opt}")
-        k3.metric("Saptanan Öğrenme Oranı (LR)", f"{predicted_lr}")
-
-    st.markdown("---")
-    
-    # INTERAKTIF PARAMETRELER (ANA PANELDE)
-    st.markdown("### ⚙️ Siber Güvenlik Tehdit Konfigürasyonu")
-    p_col1, p_col2, p_col3 = st.columns(3)
-    with p_col1:
-        selected_attacks = st.multiselect("Saldırı Türlerini Seçin:", ["FGSM", "PGD"], default=["FGSM", "PGD"])
-    with p_col2:
-        norm_type = st.selectbox("Pertürbasyon Normu (L-Norm):", ["L-infinity (L_inf)", "L-2 Norm"])
-    with p_col3:
-        eps_value = st.slider("Gürültü Şiddeti (Epsilon ε):", min_value=0.01, max_value=0.50, value=0.15, step=0.01)
-
     clean_preds = np.argmax(classifier_engine.predict(x_test_np), axis=1)
     baseline_acc = np.sum(clean_preds == y_test_np) / len(y_test_np) * 100
-    st.info(f"🎯 **Modelinizin Orijinal (Saldırısız) Verideki Doğruluk Oranı:** %{baseline_acc:.2f}")
 
-    tab1, tab2, tab3 = st.tabs(["📋 Yapay Zekâ Araç Raporu", "📊 Eş Zamanlı Siber Simülasyon", "🧠 XAI / Canlı Grad-CAM Teşhisi"])
+    # Üç Büyük Dinamik Sayfa (Tab Düzeni)
+    tab1, tab2, tab3 = st.tabs(["📋 1. SAYFA: Model Özellikleri", "📊 2. SAYFA: Siber Dayanıklılık & İnteraktif Analiz", "🧠 3. SAYFA: Gelişmiş Göstergeler (XAI)"])
     
-    # SEKMELER 1: SEKTÖR STANDARDI KATMAN GÖRSELLEŞTİRME
+    # ==========================================
+    # 1. SAYFA: MODELİN ÖZELLİKLERİ VE TASARIM DENETİMİ
+    # ==========================================
     with tab1:
-        st.markdown("### 🔍 Model Röntgeni ve Katman Tasarımı Akış Şeması")
+        st.markdown("### 🔍 Mimarî Akış Şeması ve Tasarruf Uyumluluk Analizi")
         
-        # Sektör standardı blok şemayı matplotlib ile dinamik çiziyoruz
-        fig_arch, ax_arch = plt.subplots(figsize=(10, 2))
+        # Sektör Standart Akış Şeması Çizimi
+        fig_arch, ax_arch = plt.subplots(figsize=(10, 1.5))
         ax_arch.axis('off')
-        
-        layers_list = []
-        for key in state_dict.keys():
-            if 'weight' in key:
-                layers_list.append(key.split('.')[0])
-                
-        # Blokları yan yana dizelim
-        box_style = dict(boxstyle="round,pad=0.5", fc="#2E303E", ec="#4E5166", lw=2)
-        arrow_style = dict(arrowstyle="->", lw=2, color="#00FFCC")
-        
+        layers_list = [key.split('.')[0] for key in state_dict.keys() if 'weight' in key]
+        box_style = dict(boxstyle="round,pad=0.4", fc="#2E303E", ec="#4E5166", lw=1.5)
         for idx, l_name in enumerate(layers_list):
-            ax_arch.text(idx * 2, 0.5, f" {l_name.upper()} \nLayer ", color="white", weight="bold", ha="center", va="center", bbox=box_style, fontsize=9)
+            ax_arch.text(idx * 2, 0.5, f" {l_name.upper()} ", color="white", weight="bold", ha="center", va="center", bbox=box_style, fontsize=8)
             if idx < len(layers_list) - 1:
-                ax_arch.annotate("", xy=((idx + 1) * 2 - 0.5, 0.5), xytext=(idx * 2 + 0.5, 0.5), arrowprops=arrow_style)
-                
+                ax_arch.annotate("", xy=((idx + 1) * 2 - 0.5, 0.5), xytext=(idx * 2 + 0.5, 0.5), arrowprops=dict(arrowstyle="->", lw=1.5, color="#00FFCC"))
         ax_arch.set_xlim(-1, len(layers_list) * 2 - 1)
         ax_arch.set_ylim(0, 1)
         st.pyplot(fig_arch)
         plt.close(fig_arch)
 
-        # Ham veri tablosu
-        layers_info = []
-        for key in state_dict.keys():
-            if 'weight' in key:
-                name = key.split('.')[0]
-                shape = list(state_dict[key].shape)
-                l_type = "Evrişim (Conv2d)" if len(shape) == 4 else "Tam Bağlantılı (Linear)"
-                layers_info.append({"Katman İsmi": name, "Katman Türü": l_type, "Matris Boyutu (Tensor Shape)": str(shape)})
-        st.table(layers_info)
+        # Yapay Zekâ Tasarım Kuralları Denetimi
+        audit_results = []
+        all_w_flattened = [v.cpu().numpy().flatten() for k, v in state_dict.items() if 'weight' in k]
+        if all_w_flattened:
+            flat_w = np.concatenate(all_w_flattened)
+            w_mean, w_std, w_max, w_min = np.mean(flat_w), np.std(flat_w), np.max(flat_w), np.min(flat_w)
+            
+            rule1 = "🟢 UYUMLU (Sıfır merkezli matris)" if abs(w_mean) <= 0.05 else "⚠️ TASARIM SAPMASI"
+            audit_results.append({"Tasarım Kuralı": "Ağırlık Sıfır Merkezleme Standardı", "Metrik": f"Ortalama: {w_mean:.4f}", "Durum": rule1})
+            
+            rule2 = "🟢 GÜVENLİ (Stabil gradyan akışı)" if -4.0 <= w_min and w_max <= 4.0 else "🔴 RİSKLİ (Patlama riski)"
+            audit_results.append({"Tasarım Kuralı": "Exploding Gradient Kriteri", "Metrik": f"Sınırlar: [{w_min:.1f}, {w_max:.1f}]", "Durum": rule2})
 
-    # SEKMELER 2: SİBER SİMÜLASYON (DURUM KORUMALI)
+        if 'fc1.weight' in state_dict:
+            ratio = state_dict['fc1.weight'].shape[1] / state_dict['fc1.weight'].shape[0]
+            rule3 = "🟢 DENGELİ" if ratio <= 15 else "⚠️ KRİTİK SEVİYE Darboğaz"
+            audit_results.append({"Tasarım Kuralı": "Mimarî Darboğaz (Bottleneck) Kontrolü", "Metrik": f"Daralma Oranı: {ratio:.1f}x", "Durum": rule3})
+            
+        st.table(audit_results)
+
+    # ==========================================
+    # 2. SAYFA: SALDIRI ALTINDAKİ DOĞRULUK VE İNTERAKTİF SAYI SEÇİMİ
+    # ==========================================
     with tab2:
-        st.markdown("### ⚙️ FGSM ve PGD Karşılaştırmalı Siber Laboratuvarı")
+        st.markdown("### ⚙️ Tehdit Altında Dayanıklılık ve Kararlılık Laboratuvarı")
+        
+        # Parametre Kontrolleri
+        cfg_c1, cfg_c2 = st.columns(2)
+        with cfg_c1:
+            norm_type = st.selectbox("Tehdit Pertürbasyon Normu:", ["L-infinity (L_inf)", "L-2 Norm"])
+        with cfg_c2:
+            eps_value = st.slider("Saldırı Şiddet Katsayısı (Epsilon ε):", min_value=0.01, max_value=0.50, value=0.15, step=0.01)
+
         trigger_btn = st.button("🚀 SİBER GÜVENLİK TESTİNİ TETİKLE", use_container_width=True)
         
-        # Eğer butona basıldıysa durumu sabitle
         if trigger_btn:
             st.session_state['analysis_triggered'] = True
-            
-            with st.spinner("Siber tehdit matrisleri ve kararlılık eğrileri hesaplanıyor..."):
+            with st.spinner("Siber gürültü matrisleri ve kararlılık eğrileri hesaplanıyor..."):
                 art_norm = np.inf if norm_type.startswith("L-infinity") else 2
                 
-                # Standart test tahminleri
+                # FGSM ve PGD Hesaplamaları
                 fgsm_eng = FastGradientMethod(estimator=classifier_engine, eps=eps_value)
                 x_fgsm = fgsm_eng.generate(x=x_test_np)
                 preds_fgsm = np.argmax(classifier_engine.predict(x_fgsm), axis=1)
@@ -194,18 +207,16 @@ else:
                 preds_pgd = np.argmax(classifier_engine.predict(x_pgd), axis=1)
                 acc_pgd = np.sum(preds_pgd == y_test_np) / len(y_test_np) * 100
                 
-                # --- KRİTİK DÜŞÜŞ GRAFİĞİ HESAPLAMA DÖNGÜSÜ ---
-                eps_range = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
+                # Kararlılık Eğrisi Döngüsü
+                eps_range = [0.0, 0.10, 0.20, 0.30, 0.40]
                 fgsm_curve, pgd_curve = [], []
-                
                 for e in eps_range:
                     f_e = FastGradientMethod(estimator=classifier_engine, eps=e)
                     p_e = ProjectedGradientDescent(estimator=classifier_engine, norm=art_norm, eps=e, eps_step=max(e/5, 0.01), max_iter=5)
-                    
                     fgsm_curve.append(np.sum(np.argmax(classifier_engine.predict(f_e.generate(x=x_test_np)), axis=1) == y_test_np) / len(y_test_np) * 100)
                     pgd_curve.append(np.sum(np.argmax(classifier_engine.predict(p_e.generate(x=x_test_np)), axis=1) == y_test_np) / len(y_test_np) * 100)
                 
-                # Tüm hesaplanan çıktıları hafızaya kilitleyelim (Rapor indirirken silinmeyi önleme)
+                # Tüm verileri session_state içerisine kilitliyoruz (Silinmeyi önleme)
                 st.session_state['acc_fgsm'] = acc_fgsm
                 st.session_state['acc_pgd'] = acc_pgd
                 st.session_state['preds_fgsm'] = preds_fgsm
@@ -213,9 +224,13 @@ else:
                 st.session_state['eps_range'] = eps_range
                 st.session_state['fgsm_curve'] = fgsm_curve
                 st.session_state['pgd_curve'] = pgd_curve
-                st.session_state['saved_x_step'] = x_pgd if "PGD" in selected_attacks else x_fgsm
+                st.session_state['saved_x_step'] = x_pgd
+                
+                # Rapor metnini hazırlayıp hafızaya atıyoruz (Böylece en üstteki buton anında aktifleşir)
+                total_v_score = (baseline_acc - min(acc_fgsm, acc_pgd))
+                st.session_state['report_text'] = f"ROBUSPECT DENETİM RAPORU\nOrijinal Başarı: %{baseline_acc:.2f}\nSaldırı Sonrası: %{min(acc_fgsm, acc_pgd):.2f}\nZafiyet Endeksi: {total_v_score:.2f}"
 
-        # Hafıza kontrolü ile çıktıların ekrana basılması
+        # Test tetiklendiyse sonuçları çizdir
         if st.session_state.get('analysis_triggered', False):
             acc_fgsm = st.session_state['acc_fgsm']
             acc_pgd = st.session_state['acc_pgd']
@@ -225,117 +240,92 @@ else:
             fgsm_curve = st.session_state['fgsm_curve']
             pgd_curve = st.session_state['pgd_curve']
             
-            sim_col1, sim_col2 = st.columns(2)
-            if "FGSM" in selected_attacks:
-                with sim_col1:
-                    st.markdown("#### **FGSM Analiz Çıktısı**")
-                    st.metric("FGSM Sağlamlık Doğruluğu", f"%{acc_fgsm:.2f}", delta=f"- %{baseline_acc - acc_fgsm:.2f} Kayıp")
-                    fig_f, ax_f = plt.subplots(figsize=(4, 3.2))
-                    sns.heatmap(confusion_matrix(y_test_np, preds_fgsm), annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax_f)
-                    st.pyplot(fig_f)
-                    plt.close(fig_f)
+            st.info(f"🎯 **Modelin Temiz Başarısı:** %{baseline_acc:.2f} | **FGSM Başarısı:** %{acc_fgsm:.2f} | **PGD Başarısı:** %{acc_pgd:.2f}")
             
-            if "PGD" in selected_attacks:
-                with sim_col2:
-                    st.markdown("#### **PGD Analiz Çıktısı**")
-                    st.metric("PGD Sağlamlık Doğruluğu", f"%{acc_pgd:.2f}", delta=f"- %{baseline_acc - acc_pgd:.2f} Kayıp")
-                    fig_p, ax_p = plt.subplots(figsize=(4, 3.2))
-                    sns.heatmap(confusion_matrix(y_test_np, preds_pgd), annot=True, fmt='d', cmap='Reds', cbar=False, ax=ax_p)
-                    st.pyplot(fig_p)
-                    plt.close(fig_p)
-
-            # ==========================================
-            # YENİ ÖZELLİK: BİRLEŞİK KRİTİK DÜŞÜŞ GRAFİĞİ
-            # ==========================================
-            st.markdown("---")
-            st.markdown("### 📈 Kararlılık Eğrisi ve Kritik Kırılma Noktası Analizi")
-            
-            fig_curve, ax_curve = plt.subplots(figsize=(8, 3.5))
-            ax_curve.plot(eps_range, fgsm_curve, label='FGSM Dayanıklılık Sınırı', color='#1f77b4', marker='o', lw=2)
-            ax_curve.plot(eps_range, pgd_curve, label='PGD Dayanıklılık Sınırı', color='#d62728', marker='s', lw=2)
-            ax_curve.axhline(y=85, color='orange', linestyle='--', label='Kritik Güvenlik Eşiği (%85)')
-            
-            # Kritik zafiyet alanını gölgelendirerek net işaretleme
-            ax_curve.fill_between(eps_range, 0, 85, where=(np.array(pgd_curve) < 85), color='red', alpha=0.15, label='Zafiyet Alanı (Critical Drop Zone)')
-            
-            ax_curve.set_xlabel('Pertürbasyon Şiddeti (Epsilon ε)')
-            ax_curve.set_ylabel('Model Doğruluk Oranı (%)')
-            ax_curve.grid(True, alpha=0.3)
+            # Kararlılık Eğrisi Grafiği
+            fig_curve, ax_curve = plt.subplots(figsize=(8, 2.8))
+            ax_curve.plot(eps_range, fgsm_curve, label='FGSM', color='#1f77b4', marker='o')
+            ax_curve.plot(eps_range, pgd_curve, label='PGD', color='#d62728', marker='s')
+            ax_curve.axhline(y=85, color='orange', linestyle='--', label='Eşik (%85)')
+            ax_curve.fill_between(eps_range, 0, 85, where=(np.array(pgd_curve) < 85), color='red', alpha=0.1)
+            ax_curve.set_xlabel('Epsilon ε')
+            ax_curve.set_ylabel('Doğruluk (%)')
             ax_curve.legend(loc='lower left')
             st.pyplot(fig_curve)
             plt.close(fig_curve)
 
-            # SINIF BAZLI BİREYSEL MATRİSLER
+            # ==========================================
+            # İSTEK: TEK TEK SAYILARIN ÜZERİNE BASILDIĞINDA O SINIFIN MATRİSİNİN ÇIKMASI
+            # ==========================================
             st.markdown("---")
-            st.markdown("### 🧮 Sınıf Bazlı Bireysel Karışıklık Matrisleri")
+            st.markdown("#### **🎯 Sınıf Bazlı İnteraktif Değerlendirme**")
+            st.caption("Detaylı Confusion Matrix analizini saniyeler içinde aşağıda üretmek için bir rakam butonuna basın:")
+            
+            # Yan yana 10 adet sayı butonu oluşturma
+            num_cols = st.columns(10)
+            if 'selected_digit' not in st.session_state:
+                st.session_state['selected_digit'] = 0
+                
+            for digit in range(10):
+                with num_cols[digit]:
+                    # Seçili olan rakamın butonunu görsel olarak vurgulamak için tip belirleme
+                    b_type = "primary" if st.session_state['selected_digit'] == digit else "secondary"
+                    if st.button(f" {digit} ", key=f"select_{digit}", type=b_type, use_container_width=True):
+                        st.session_state['selected_digit'] = digit
+            
+            # Seçilen rakama ait alt confusion matrix hesaplaması ve görselleştirilmesi
+            sel_digit = st.session_state['selected_digit']
             active_preds = preds_pgd if preds_pgd is not None else preds_fgsm
             cm_global = confusion_matrix(y_test_np, active_preds, labels=list(range(10)))
             
-            grid_col1, grid_col2, grid_col3 = st.columns(3)
-            for digit in range(10):
-                idx = (y_test_np == digit)
-                digit_acc = (np.sum(active_preds[idx] == y_test_np[idx]) / np.sum(idx)) * 100 if np.sum(idx) > 0 else 0
-                target_grid = grid_col1 if digit % 3 == 0 else (grid_col2 if digit % 3 == 1 else grid_col3)
-                
-                with target_grid:
-                    st.markdown(f"**Sınıf [{digit}] Matrisi (Doğruluk: %{digit_acc:.1f})**")
-                    fig_sub, ax_sub = plt.subplots(figsize=(2.5, 2))
-                    sns.heatmap([cm_global[digit]], annot=True, fmt='d', cmap='Purples', cbar=False, xticklabels=range(10), yticklabels=[digit], ax=ax_sub)
-                    st.pyplot(fig_sub)
-                    plt.close(fig_sub)
+            st.markdown(f"##### 🧮 **Sınıf [{sel_digit}] İçin İzole Siber Hata Dağılımı (Confusion Matrix)**")
+            fig_sub, ax_sub = plt.subplots(figsize=(6, 1.8))
+            sns.heatmap([cm_global[sel_digit]], annot=True, fmt='d', cmap='Purples', cbar=False, xticklabels=range(10), yticklabels=[sel_digit], ax=ax_sub)
+            ax_sub.set_xlabel('Yapay Zekânın Saldırı Altındaki Hatalı Tahmin Sınıfları')
+            st.pyplot(fig_sub)
+            plt.close(fig_sub)
 
-            # GENEL BAKIŞ HEATMAP
-            st.markdown("---")
-            st.markdown("### 📊 Genel Bakış")
-            fig_heatmap, ax_heatmap = plt.subplots(figsize=(7, 4.5))
+    # ==========================================
+    # 3. SAYFA: GELİŞMİŞ KULLANICI SONUÇLARI (HEATMAP, ALARM VE GRAD-CAM)
+    # ==========================================
+    with tab3:
+        if not st.session_state.get('analysis_triggered', False):
+            st.info("💡 Lütfen öncelikle '2. Sayfa' üzerinden siber güvenlik analizini tetikleyin.")
+        else:
+            preds_fgsm = st.session_state['acc_fgsm']
+            preds_pgd = st.session_state['acc_pgd']
+            active_preds = st.session_state['preds_pgd'] if st.session_state['preds_pgd'] is not None else st.session_state['preds_fgsm']
+            cm_global = confusion_matrix(y_test_np, active_preds, labels=list(range(10)))
+            
+            # İstek: Genel Bakış Başlıklı Küresel Heatmap
+            st.markdown("### 📊 Genel Bakış (Küresel Korelasyon Matrisi)")
+            fig_heatmap, ax_heatmap = plt.subplots(figsize=(7, 4.2))
             sns.heatmap(cm_global, annot=True, fmt='d', cmap='YlOrRd', xticklabels=range(10), yticklabels=range(10), ax=ax_heatmap)
+            ax_heatmap.set_xlabel('Yapay Zekânın Tahmini')
+            ax_heatmap.set_ylabel('Gerçek Sınıfı')
             st.pyplot(fig_heatmap)
             plt.close(fig_heatmap)
+            
+            # Kritik Nokta Alarmı
+            total_vulnerability_score = (baseline_acc - min(st.session_state['acc_fgsm'], st.session_state['acc_pgd']))
+            if total_vulnerability_score > 10.0:
+                st.error(f"🚨 KRİTİK ALARM: Model üzerinde {total_vulnerability_score:.2f} birimlik aşırı kararsızlık saptanmıştır!")
 
-            # GÜVENLİK RAPORU VE HAVUZU (.TXT İNDİRME ALANI)
+            # İleri Seviye Grad-CAM Katmanı
             st.markdown("---")
-            st.markdown("### 📜 Küresel Güvenlik Raporu ve İndirme Merkezi")
+            st.markdown("### 🧠 Gelişmiş Teşhis Paneli (Canlı Grad-CAM & Diferansiyel Fark Haritası)")
             
-            report_rows = []
-            for digit in range(10):
-                idx = (y_test_np == digit)
-                c_acc = (np.sum(clean_preds[idx] == y_test_np[idx]) / np.sum(idx)) * 100
-                attack_acc = (np.sum(active_preds[idx] == y_test_np[idx]) / np.sum(idx)) * 100
-                delta_drop = c_acc - attack_acc
-                risk_status = "🔴 KRİTİK ZAFİYET" if delta_drop >= 25.0 else ("🟡 ORTA RİSK" if delta_drop >= 10.0 else "🟢 GÜVENLİ")
-                
-                report_rows.append({"Sınıf (Rakam)": f"Sınıf {digit}", "Temiz Doğruluk": f"%{c_acc:.2f}", "Saldırı Sonrası Doğruluk": f"%{attack_acc:.2f}", "Performans Kaybı (Δ)": f"- %{delta_drop:.2f}", "Güvenlik Durumu": risk_status})
-            
-            st.dataframe(pd.DataFrame(report_rows), use_container_width=True)
-
-            # Metin raporunu dinamik hazırlıyoruz
-            report_text = f"=============================================================\nROBUSPECT MLSECOPS MODEL GÜVENLİK DENETİM RAPORU\n=============================================================\n"
-            report_text += f"Tahmini Optimizer: {predicted_opt}\nModel Orijinal Başarısı: %{baseline_acc:.2f}\nSaldırı Altındaki En Düşük Başarı: %{min(acc_fgsm, acc_acc_live := acc_pgd):.2f}\n"
-            
-            st.markdown("#### **📥 Resmi Denetim Raporunu Dışarı Aktar**")
-            st.download_button(label="📄 RESMİ GÜVENLİK RAPORUNU (.TXT) İNDİR", data=report_text, file_name="robuspect_model_guvenlik_raporu.txt", mime="text/plain", use_container_width=True)
-            
-            # Bir sonraki sekmeye kırılgan sınıfı paslayalım
-            class_scores = {c: np.sum(active_preds[y_test_np == c] == y_test_np[y_test_np == c]) / np.sum(y_test_np == c) * 100 for c in range(10)}
-            st.session_state['crit_class'] = sorted(class_scores.items(), key=lambda x: x[1])[0][0]
-
-    # SEKMELER 3: GRAD-CAM
-    with tab3:
-        st.markdown("### 🧠 Gömülü XAI Teşhis Paneli (Canlı Grad-CAM)")
-        if 'crit_class' not in st.session_state or 'saved_x_step' not in st.session_state:
-            st.info("💡 Grad-CAM üretebilmek için lütfen önce ikinci sekmeden 'Siber Testi Tetikle' butonuna basın.")
-        else:
-            c_class = st.session_state['crit_class']
+            selected_layer = st.selectbox("İncelemek İstediğiniz Derin Nöron Katmanını Seçin:", ["conv1", "conv2"], index=1)
+            c_class = st.session_state.get('crit_class', 4)
             x_pgd_saved = st.session_state['saved_x_step']
-            
-            st.success(f"En çok sabote edilen Sınıf [{c_class}] için derin katman nöron aktivasyon haritası çıkartılıyor...")
             
             g_list, a_list = [], []
             def h_b(module, gi, go): g_list.append(go[0])
             def h_f(module, i, o): a_list.append(o)
             
-            hook_backward = eval_model.conv2.register_full_backward_hook(h_b)
-            hook_forward = eval_model.conv2.register_forward_hook(h_f)
+            target_layer_module = getattr(eval_model, selected_layer)
+            hook_backward = target_layer_module.register_full_backward_hook(h_b)
+            hook_forward = target_layer_module.register_forward_hook(h_f)
             
             t_idx = np.where(y_test_np == c_class)[0][0]
             img_clean_t = torch.tensor(x_test_np[t_idx:t_idx+1]).to(device)
@@ -348,7 +338,6 @@ else:
                 conf = F.softmax(out, dim=1)[0, p_cls].item() * 100
                 eval_model.zero_grad()
                 out[0, p_cls].backward()
-                
                 gr = g_list[0].cpu().data.numpy()[0]
                 ac = a_list[0].cpu().data.numpy()[0]
                 w = np.mean(gr, axis=(1, 2))
@@ -363,24 +352,35 @@ else:
             cam_a, p_a, conf_a = compute_cam(img_adv_t)
             hook_backward.remove(); hook_forward.remove()
             
-            fig_cam, axes = plt.subplots(1, 4, figsize=(14, 4))
+            cam_diff = np.abs(cam_c - cam_a)
+            if np.max(cam_diff) > 0: cam_diff /= np.max(cam_diff)
+            
+            # 5'li Gelişmiş Adli Bilişim Matrisi Çizimi
+            fig_cam, axes = plt.subplots(1, 5, figsize=(18, 3.8))
             axes[0].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
-            axes[0].set_title(f"Orijinal Girdi\nTahmin: {p_c}", color='green', fontsize=10, fontweight='bold')
+            axes[0].set_title(f"Orijinal Girdi\nTahmin: {p_c}", color='green', fontsize=9, fontweight='bold')
             axes[0].axis('off')
             
             axes[1].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
             axes[1].imshow(cam_c, cmap='jet', alpha=0.45)
-            axes[1].set_title(f"Temiz Karar Odağı\nGüven: %{conf_c:.1f}", fontsize=10, fontweight='bold')
+            axes[1].contour(cam_c, colors='white', alpha=0.3, linewidths=0.5)
+            axes[1].set_title(f"Temiz Odak (%{conf_c:.1f})", fontsize=9, fontweight='bold')
             axes[1].axis('off')
             
             axes[2].imshow(x_pgd_saved[t_idx].squeeze(), cmap='gray')
-            axes[2].set_title(f"Saldırılı Girdi\nTahmin: {p_a}", color='red', fontsize=10, fontweight='bold')
+            axes[2].set_title(f"Saldırılı Girdi\nTahmin: {p_a}", color='red', fontsize=9, fontweight='bold')
             axes[2].axis('off')
             
             axes[3].imshow(x_pgd_saved[t_idx].squeeze(), cmap='gray')
             axes[3].imshow(cam_a, cmap='jet', alpha=0.55)
-            axes[3].set_title(f"Saldırı Altındaki Sapma\nGüven: %{conf_a:.1f}", color='red', fontsize=10, fontweight='bold')
+            axes[3].contour(cam_a, colors='white', alpha=0.3, linewidths=0.5)
+            axes[3].set_title(f"Saldırı Odağı (%{conf_a:.1f})", color='red', fontsize=9, fontweight='bold')
             axes[3].axis('off')
+            
+            axes[4].imshow(x_test_np[t_idx].squeeze(), cmap='gray')
+            axes[4].imshow(cam_diff, cmap='hot', alpha=0.6)
+            axes[4].set_title("Odak Sapma Haritası", color='orange', fontsize=9, fontweight='bold')
+            axes[4].axis('off')
             
             st.pyplot(fig_cam)
             plt.close(fig_cam)
